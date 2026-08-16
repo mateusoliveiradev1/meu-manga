@@ -15,13 +15,13 @@ export async function getCurrentUser() {
 
 export async function requireUser() {
   const user = await getCurrentUser();
-  if (!user) redirect("/entrar?next=" + encodeURIComponent(""));
+  if (!user) redirect("/entrar?next=%2Fperfil&motivo=perfil");
   return user;
 }
 
 export async function requireAdmin() {
   const user = await getCurrentUser();
-  if (!user) redirect("/entrar");
+  if (!user) redirect("/entrar?next=%2Fadmin&motivo=admin");
   if (user.role !== "admin") redirect("/");
   return user;
 }

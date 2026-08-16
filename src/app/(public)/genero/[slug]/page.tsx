@@ -24,20 +24,21 @@ export default async function GenrePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ sort?: string }>;
+  searchParams: Promise<{ sort?: string; q?: string }>;
 }) {
   const { slug } = await params;
   const genre = genreBySlug(slug);
   if (!genre) notFound();
   const sp = await searchParams;
+  const q = sp.q?.trim().slice(0, 80) ?? "";
   const sort: SeriesSort = sp.sort === "reads" || sp.sort === "rated" ? sp.sort : "recent";
-  const series = await getSeriesList(undefined, { genreName: genre.name, sort });
+  const series = await getSeriesList(undefined, { q, genreName: genre.name, sort });
 
   return (
     <>
       <div className="mt-2">
-        <Link href="/" className="btn ghost small">
-          <IconArrowLeft size={14} /> Todas as obras
+        <Link href="/generos" className="btn ghost small">
+          <IconArrowLeft size={14} /> Todos os gêneros
         </Link>
       </div>
 
@@ -45,17 +46,17 @@ export default async function GenrePage({
         <div className="section-head">
           <div className="section-head-title">
             <span className="section-idx mono-num" aria-hidden="true">
-              {genre.slug.slice(0, 2).toUpperCase()}
+              gênero
             </span>
             <h1>{genre.name}</h1>
           </div>
           <span className="section-sub">
-            {series.length} {series.length === 1 ? "obra" : "obras"} em exibição
+            {series.length} {series.length === 1 ? "história encontrada" : "histórias encontradas"}
           </span>
         </div>
         <p className="genre-blurb">{GENRE_BLURBS[genre.slug]}</p>
 
-        <SeriesGrid series={series} base={`/genero/${genre.slug}`} genre={genre.slug} sort={sort} />
+        <SeriesGrid series={series} base={`/genero/${genre.slug}`} q={q || undefined} genre={genre.slug} sort={sort} showGenreBar={false} />
       </section>
     </>
   );

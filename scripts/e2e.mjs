@@ -48,10 +48,14 @@ try {
   check("dropdown lista os gêneros", dropLinks >= 10, `${dropLinks} gêneros`);
   check("link Sobre no header", (await page.locator('.site-nav a[href="/sobre"]').count()) === 1);
 
-  // 1c. genre filter on home
-  await page.goto(BASE + "/?genero=drama", { waitUntil: "load" });
-  const genreH2 = await page.locator("h2").first().innerText();
-  check("filtro por gênero na home", genreH2.includes("Gênero: Drama"), genreH2);
+  // 1c. catalog and genre discovery
+  await page.goto(BASE + "/obras", { waitUntil: "load" });
+  const catalogH1 = await page.locator("h1").first().innerText();
+  check("catálogo dedicado carrega", catalogH1.includes("próxima história"), catalogH1);
+
+  await page.goto(BASE + "/genero/drama", { waitUntil: "load" });
+  const genreH1 = await page.locator("h1").first().innerText();
+  check("filtro por gênero usa rota canônica", genreH1 === "Drama", genreH1);
 
   // 1d. search from the header
   await page.goto(BASE + "/", { waitUntil: "load" });
@@ -59,11 +63,18 @@ try {
   await page.press(".header-search input", "Enter");
   await page.waitForTimeout(800);
   const searchH2 = await page.locator("h2").first().innerText();
-  check("busca do header filtra obras", searchH2.includes("Busca:"), searchH2);
+  check(
+    "busca do header abre o catálogo filtrado",
+    page.url().includes("/obras?q=eco") && searchH2.includes("Resultados para"),
+    `${page.url()} — ${searchH2}`
+  );
 
   // 1e. about page
   await page.goto(BASE + "/sobre", { waitUntil: "load" });
-  check("página Sobre carrega", (await page.content()).includes("O estúdio") && (await page.locator(".stat").count()) >= 2);
+  check(
+    "página Sobre carrega",
+    (await page.content()).includes("Histórias que crescem") && (await page.locator(".about-stats > div").count()) >= 2
+  );
 
   // 1f. genre page + SEO endpoints
   await page.goto(BASE + "/genero/horror", { waitUntil: "load" });
@@ -91,7 +102,7 @@ try {
   await page.fill("#reg-name", NAME);
   await page.fill("#reg-email", EMAIL);
   await page.fill("#reg-password", PASSWORD);
-  await page.click('button:has-text("Criar conta")');
+  await page.click('button:has-text("Criar minha estante")');
   const regRedirected = await page
     .waitForURL(BASE + "/", { timeout: 8000 })
     .then(() => true)
@@ -125,7 +136,7 @@ try {
     await page.fill("#sf-title", TITLE);
     await page.fill("#sf-synopsis", "Sinopse criada pelo teste de ponta a ponta.");
     await page.fill("#sf-tags", "teste, e2e");
-    await page.click('button:has-text("Salvar obra")');
+    await page.click('button:has-text("Criar obra")');
     await page.waitForURL(/\/admin\/obras\/\d+\/capitulos/, { timeout: 15000 });
     check("obra criada -> página de capítulos", true);
 
@@ -141,7 +152,7 @@ try {
 
     // 6. add pages via URLs
     await page.fill("textarea", "https://picsum.photos/seed/e2e1/800/1200\nhttps://picsum.photos/seed/e2e2/800/1200");
-    await page.click('button:has-text("Adicionar URLs")');
+    await page.click('button:has-text("Importar URLs")');
     await page.waitForTimeout(2500);
     await page.waitForSelector(".pm-row", { timeout: 10000 });
     check("páginas adicionadas via URL", true);
@@ -184,7 +195,7 @@ try {
   await page.waitForSelector("#cm-msg", { timeout: 10000 });
   chapterCommentText = `Comentário E2E ${Date.now()}`;
   await page.fill("#cm-msg", chapterCommentText);
-  await page.click('button:has-text("Comentar")');
+  await page.click('button:has-text("Publicar comentário")');
   await page.waitForTimeout(2000);
   await page.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
   await page.waitForSelector(".cm-entry", { timeout: 10000 });
@@ -197,7 +208,7 @@ try {
   await page.waitForTimeout(1200);
   await page.goto(BASE + "/", { waitUntil: "load" });
   const home2 = await page.content();
-  check("favoritar mostra a obra nas favoritas", home2.includes("Suas favoritas") && home2.includes(TITLE));
+  check("favoritar mostra a obra na estante", home2.includes("Sua estante") && home2.includes(TITLE));
 
   // 11. reading progress (page mode click — reader defaults to scroll mode)
   await page.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
@@ -234,7 +245,7 @@ try {
   const seriesMsg = `Comentário da obra ${Date.now()}`;
   await page.fill("#cm-msg", seriesMsg);
   await page.evaluate(() => {
-    const btn = Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Comentar");
+    const btn = Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Publicar comentário");
     btn?.click();
   });
   await page.waitForTimeout(2000);
@@ -262,7 +273,7 @@ try {
     await readerPage.fill("#reg-name", "Leitor Moderacao");
     await readerPage.fill("#reg-email", readerEmail);
     await readerPage.fill("#reg-password", PASSWORD);
-    await readerPage.click('button:has-text("Criar conta")');
+    await readerPage.click('button:has-text("Criar minha estante")');
     await readerPage.waitForURL(BASE + "/", { timeout: 15000 });
     await readerPage.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
     const reportedEntry = readerPage.locator(".cm-entry", { hasText: chapterCommentText });

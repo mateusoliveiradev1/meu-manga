@@ -61,10 +61,10 @@ export default async function CapituloPage({ params }: { params: Promise<{ id: s
         </p>
         <div className="chapter-cta">
           <Link className="btn" href={`/ler/${row.id}`}>
-            <IconBook size={16} /> Ler capítulo <IconArrowRight size={16} />
+            <IconBook size={16} /> Começar este capítulo <IconArrowRight size={16} />
           </Link>
           <Link className="btn ghost" href={`/obra/${row.series_slug}`}>
-            Ver obra
+            Voltar à história
           </Link>
         </div>
       </section>
@@ -82,7 +82,7 @@ export default async function CapituloPage({ params }: { params: Promise<{ id: s
 
       <div className="hairline" aria-hidden="true" />
 
-      <section className="section" aria-label="Comentários do capítulo">
+      <section className="section" id="comentarios" aria-label="Comentários do capítulo">
         <div className="section-head">
           <div className="section-head-title">
             <span className="section-idx mono-num" aria-hidden="true">
@@ -97,7 +97,8 @@ export default async function CapituloPage({ params }: { params: Promise<{ id: s
 
         {comments.length === 0 ? (
           <div className="manga-panel empty-state">
-            <p>Nenhum comentário ainda. Seja a primeira pessoa a comentar este capítulo!</p>
+            <div className="empty-title">A conversa ainda não começou</div>
+            <p>Depois da leitura, volte aqui para contar o que mais chamou sua atenção.</p>
           </div>
         ) : (
           <div className="stack">

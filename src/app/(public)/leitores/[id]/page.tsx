@@ -19,7 +19,10 @@ export default async function ReaderProfilePage({ params }: { params: Promise<{ 
   const profile = await getPublicProfile(id);
   if (!profile) notFound();
 
-  const [favs, comments] = await Promise.all([getUserFavorites(id), getCommentsByUser(id, 20)]);
+  const [favs, comments] = await Promise.all([
+    profile.favoritesPublic ? getUserFavorites(id) : Promise.resolve([]),
+    profile.commentsPublic ? getCommentsByUser(id, 20) : Promise.resolve([]),
+  ]);
   const createdAt = profile.createdAt ? new Date(profile.createdAt) : null;
 
   return (
@@ -31,7 +34,7 @@ export default async function ReaderProfilePage({ params }: { params: Promise<{ 
       </div>
 
       <section className="manga-panel profile-card" aria-label={`Perfil de ${profile.name}`}>
-        <span className="profile-avatar">{initials(profile.name)}</span>
+        {profile.image ? <img className="profile-avatar profile-avatar-image" src={profile.image} alt="" /> : <span className="profile-avatar">{initials(profile.name)}</span>}
         <div style={{ minWidth: 0 }}>
           <div className="profile-name">{profile.name}</div>
           <div className="row" style={{ marginTop: "0.55rem" }}>
@@ -41,8 +44,8 @@ export default async function ReaderProfilePage({ params }: { params: Promise<{ 
               </span>
             )}
             <span className="badge">{createdAt ? `membro desde ${formatDate(createdAt)}` : "membro"}</span>
-            <span className="badge">{formatNumber(profile.favoriteCount)} favoritas</span>
-            <span className="badge">{formatNumber(profile.commentCount)} comentários</span>
+            {profile.favoritesPublic && <span className="badge">{formatNumber(profile.favoriteCount)} favoritas</span>}
+            {profile.commentsPublic && <span className="badge">{formatNumber(profile.commentCount)} comentários</span>}
           </div>
         </div>
       </section>
@@ -58,7 +61,9 @@ export default async function ReaderProfilePage({ params }: { params: Promise<{ 
             </h2>
           </div>
         </div>
-        {favs.length === 0 ? (
+        {!profile.favoritesPublic ? (
+          <div className="manga-panel empty-state"><p>Este leitor escolheu manter as favoritas privadas.</p></div>
+        ) : favs.length === 0 ? (
           <div className="manga-panel empty-state">
             <p>Este leitor ainda não guardou nenhuma obra.</p>
           </div>
@@ -88,7 +93,9 @@ export default async function ReaderProfilePage({ params }: { params: Promise<{ 
             </h2>
           </div>
         </div>
-        {comments.length === 0 ? (
+        {!profile.commentsPublic ? (
+          <div className="manga-panel empty-state"><p>Este leitor escolheu manter a atividade privada.</p></div>
+        ) : comments.length === 0 ? (
           <div className="manga-panel empty-state">
             <p>Este leitor ainda não comentou nada.</p>
           </div>

@@ -1,8 +1,8 @@
 /* Service worker — Plataforma Dark Premium
    - Navegação: network-first com fallback para cache (sempre mostra o capítulo novo)
    - Imagens (/api/files e R2): cache-first com preenchimento em runtime (leitura offline) */
-const CACHE = "manga-studio-v2";
-const PRECACHE = ["/", "/sobre", "/offline"];
+const CACHE = "manga-studio-v3";
+const PRECACHE = ["/", "/obras", "/generos", "/sobre", "/offline"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

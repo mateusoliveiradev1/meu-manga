@@ -7,6 +7,7 @@ import { IconGear, IconUser } from "@/components/ui/icons";
 import { SiteLogo } from "@/components/ui/logo";
 import { NavLink } from "@/components/ui/nav-link";
 import { SearchBox } from "@/components/catalog/search-box";
+import { MobileNav } from "@/components/ui/mobile-nav";
 import { PwaControls } from "@/components/pwa/pwa-controls";
 import { getCurrentUser } from "@/features/auth/session";
 import { getLatestPublishedAt, getStats } from "@/features/catalog/queries";
@@ -30,10 +31,12 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           </Link>
           <SearchBox />
           <nav className="site-nav" aria-label="Navegação principal">
-            <NavLink href="/" exact>Obras</NavLink>
+            <NavLink href="/" exact>Início</NavLink>
+            <NavLink href="/obras">Obras</NavLink>
             <details className="genre-drop">
               <summary>Gêneros</summary>
               <div className="genre-drop-panel">
+                <Link href="/generos" className="genre-all-link">Todos os gêneros</Link>
                 {GENRES.map((g) => (
                   <Link key={g.slug} href={`/genero/${g.slug}`}>
                     {g.name}
@@ -64,6 +67,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             )}
           </nav>
           <ThemeToggle />
+          <MobileNav user={user ? { name: user.name, role: user.role ?? "user" } : null} />
         </div>
       </header>
 
@@ -76,14 +80,16 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
               <SiteLogo name={SITE_NAME} />
             </Link>
             <p className="footer-tagline">
-              Mangás publicados direto do estúdio — capítulo por capítulo, página por página.
+              Histórias independentes que crescem capítulo a capítulo, direto do estúdio para a sua estante.
             </p>
             <HitCounter value={stats.views} label="leituras no estúdio" />
           </div>
           <nav className="footer-col" aria-label="Navegação do rodapé">
             <h3>Navegação</h3>
-            <Link href="/">As obras</Link>
+            <Link href="/">Início</Link>
+            <Link href="/obras">Explorar obras</Link>
             <Link href="/capitulos">Capítulos</Link>
+            <Link href="/generos">Gêneros</Link>
             <Link href="/sobre">Sobre o estúdio</Link>
             <Link href="/privacidade">Privacidade & termos</Link>
             {user ? (
@@ -107,13 +113,13 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
                 Apoiar o estúdio
               </a>
             )}
-            <p className="footer-note">Feito com tinta, papel e muito chá.</p>
+            <p className="footer-note">Criado, editado e publicado pelo estúdio.</p>
             <PwaControls />
           </div>
         </div>
         <div className="footer-bottom">
           <p>
-            © {new Date().getFullYear()} {SITE_NAME}. Todos os direitos de desenhar reservados.
+            © {new Date().getFullYear()} {SITE_NAME}. Histórias e personagens pertencem aos seus respectivos autores.
           </p>
         </div>
       </footer>

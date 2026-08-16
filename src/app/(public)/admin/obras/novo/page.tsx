@@ -6,9 +6,9 @@ export const dynamic = "force-dynamic";
 export default async function NewSeriesPage() {
   await requireAdmin();
   return (
-    <section className="section" aria-label="Nova obra">
-      <h2>Nova obra</h2>
-      <p className="muted">Título, sinopse e capa — depois você adiciona os capítulos.</p>
+    <section className="section" aria-label="Começar nova obra">
+      <h2>Começar uma nova obra</h2>
+      <p className="muted">Defina a identidade da história. Depois você monta e publica os capítulos.</p>
       <div className="manga-panel form-panel">
         <SeriesForm />
       </div>

@@ -1,137 +1,78 @@
 import Link from "next/link";
-import { IconArrowLeft, IconBook, IconChat, IconEye } from "@/components/ui/icons";
-import { getStats } from "@/features/catalog/queries";
+import { IconArrowRight, IconBook, IconChat, IconEye } from "@/components/ui/icons";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
+import { getSeriesList, getStats } from "@/features/catalog/queries";
 import { formatNumber } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 const SITE_NAME = process.env.SITE_NAME || "Meu Mangá";
+const CATALOG_DEMO = process.env.NEXT_PUBLIC_CATALOG_DEMO !== "false";
 
 export const metadata = {
   title: "Sobre o estúdio",
-  description: "Quem desenha, como os capítulos nascem e como aproveitar a leitura.",
+  description: "Histórias independentes, publicadas capítulo a capítulo e pensadas para uma leitura confortável em qualquer tela.",
 };
 
 export default async function SobrePage() {
-  const stats = await getStats();
+  const [stats, works] = await Promise.all([getStats(), getSeriesList()]);
+  const showcase = works.filter((work) => work.cover).slice(0, 3);
 
   return (
     <>
-      <div className="mt-2">
-        <Link href="/" className="btn ghost small">
-          <IconArrowLeft size={14} /> Voltar às obras
-        </Link>
-      </div>
-
-      <section className="section" aria-label="Sobre o estúdio">
-        <div className="section-head">
-          <div className="section-head-title">
-            <span className="section-idx mono-num" aria-hidden="true">
-              01
-            </span>
-            <h1>O estúdio</h1>
-          </div>
-          <span className="section-sub">por trás de cada página</span>
-        </div>
-
-        <div className="manga-panel about-prose">
+      <section className="about-hero" aria-labelledby="about-title">
+        <div className="about-hero-copy">
+          {CATALOG_DEMO && <span className="demo-note">Catálogo em demonstração</span>}
+          <h1 id="about-title">Histórias que crescem capítulo a capítulo</h1>
           <p>
-            {SITE_NAME} é um estúdio de um artista só: histórias desenhadas, entintadas e
-            publicadas página por página, direto da bancada para a sua tela. Aqui não existe
-            editora no meio do caminho — o que você lê é o que saiu do traço (e do teclado).
+            {SITE_NAME} é um estúdio independente de histórias em sequência. Cada obra é criada,
+            editada e publicada aqui, diretamente para quem acompanha desde a primeira página.
           </p>
           <p>
-            Cada capítulo nasce como um punhado de páginas soltas e vira uma obra completa:
-            capa, capítulos numerados, progresso de leitura e comentários de quem acompanha.
-            O estúdio é pequeno, mas a estante cresce a cada publicação.
+            A estante ainda está crescendo. Algumas histórias estão apenas começando; outras ganharão
+            novos capítulos com o tempo. Você escolhe como ler e sempre volta exatamente de onde parou.
           </p>
-          <div className="stats-row">
-            <div className="stat">
-              <IconBook size={16} />
-              <span className="mono-num">{formatNumber(stats.series)}</span>
-              <span className="stat-label">obras na estante</span>
-            </div>
-            <div className="stat">
-              <IconEye size={16} />
-              <span className="mono-num">{formatNumber(stats.chapters)}</span>
-              <span className="stat-label">capítulos publicados</span>
-            </div>
-            <div className="stat">
-              <IconChat size={16} />
-              <span className="mono-num">{formatNumber(stats.comments)}</span>
-              <span className="stat-label">comentários de leitores</span>
-            </div>
+          <div className="about-hero-actions">
+            <Link href="/obras" className="btn">Encontrar uma história <IconArrowRight size={15} /></Link>
+            <Link href="/capitulos" className="btn ghost">Ver capítulos recentes</Link>
           </div>
         </div>
+        {showcase.length > 0 && (
+          <div className="about-cover-stack" aria-label="Obras na estante">
+            {showcase.map((work, index) => (
+              <Link key={work.id} href={`/obra/${work.slug}`} style={{ "--cover-index": index } as React.CSSProperties}>
+                <ResponsiveImage src={work.cover} alt={`Capa de ${work.title}`} sizes="10rem" />
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
-      <div className="hairline" aria-hidden="true" />
-
-      <section className="section" aria-label="Como funciona">
-        <div className="section-head">
-          <div className="section-head-title">
-            <span className="section-idx mono-num" aria-hidden="true">
-              02
-            </span>
-            <h2>Como funciona</h2>
-          </div>
-        </div>
-        <div className="about-cols">
-          <div className="manga-panel">
-            <h3>Publicação</h3>
-            <p>
-              Capítulos entram pela bancada do autor e são publicados quando estão prontos.
-              Obras novas aparecem na estante com capa, sinopse e gêneros — e cada capítulo
-              pode ter a própria capa, leituras e comentários.
-            </p>
-          </div>
-          <div className="manga-panel">
-            <h3>Leitura</h3>
-            <p>
-              Três jeitos de ler: <strong>Rolagem</strong> (o padrão, página após página),
-              <strong> Página</strong> (virar com toque ou teclado) e <strong>Dupla</strong>{" "}
-              (duas páginas lado a lado no desktop). O progresso fica salvo — você volta
-              exatamente de onde parou.
-            </p>
-          </div>
-          <div className="manga-panel">
-            <h3>Comunidade</h3>
-            <p>
-              Comente cada capítulo ou a obra inteira, dê sua nota de 1 a 5 estrelas e
-              favorite as histórias. Os comentários mais recentes aparecem na home e no
-              seu perfil.
-            </p>
-          </div>
-        </div>
+      <section className="about-stats" aria-label="Estante em números">
+        <div><IconBook size={17} /><strong>{formatNumber(stats.series)}</strong><span>{stats.series === 1 ? "obra" : "obras"}</span></div>
+        <div><IconEye size={17} /><strong>{formatNumber(stats.chapters)}</strong><span>{stats.chapters === 1 ? "capítulo" : "capítulos"}</span></div>
+        <div><IconChat size={17} /><strong>{formatNumber(stats.comments)}</strong><span>{stats.comments === 1 ? "comentário" : "comentários"}</span></div>
       </section>
 
-      <div className="hairline" aria-hidden="true" />
-
-      <section className="section" aria-label="Perguntas frequentes">
-        <div className="section-head">
-          <div className="section-head-title">
-            <span className="section-idx mono-num" aria-hidden="true">
-              03
-            </span>
-            <h2>Perguntas frequentes</h2>
-          </div>
+      <section className="about-principles" aria-labelledby="reading-title">
+        <div className="about-principles-intro">
+          <h2 id="reading-title">Uma estante feita para acompanhar</h2>
+          <p>O produto existe para deixar a história em primeiro plano e remover atrito entre um capítulo e o próximo.</p>
         </div>
-        <div className="manga-panel about-faq">
-          <h3>Os capítulos são publicados em que ritmo?</h3>
-          <p>
-            Quando estiverem prontos. A home mostra sempre a data do capítulo mais recente —
-            se o estúdio está em silêncio, é porque a tinta ainda está secando.
-          </p>
-          <h3>Posso comentar sem criar conta?</h3>
-          <p>
-            Comentar e avaliar exigem conta. Ler, navegar e favoritar (no dispositivo) são
-            livres.
-          </p>
-          <h3>O progresso de leitura é salvo?</h3>
-          <p>
-            Sim. Visitantes sem conta têm o progresso guardado no navegador; quem tem conta,
-            salvo na conta — vale para qualquer dispositivo.
-          </p>
+        <ol>
+          <li><span>01</span><div><h3>Encontre sua próxima história</h3><p>Explore capas, sinopses e gêneros sem precisar criar uma conta.</p></div></li>
+          <li><span>02</span><div><h3>Leia do seu jeito</h3><p>Use rolagem, página única ou página dupla. O leitor se adapta ao seu ritmo e à sua tela.</p></div></li>
+          <li><span>03</span><div><h3>Volte de onde parou</h3><p>Seu progresso fica no aparelho; com uma conta, acompanha você entre dispositivos.</p></div></li>
+        </ol>
+      </section>
+
+      <section className="about-faq-section" aria-labelledby="faq-title">
+        <div><h2 id="faq-title">Antes de começar</h2><p>Respostas curtas para as dúvidas mais comuns.</p></div>
+        <div className="about-faq-list">
+          <details><summary>Quando chegam capítulos novos?</summary><p>Não há uma frequência fixa. A página de capítulos sempre mostra as publicações mais recentes e suas datas.</p></details>
+          <details><summary>Preciso de conta para ler?</summary><p>Não. Ler e explorar são livres. A conta serve para sincronizar progresso, avaliar e participar dos comentários.</p></details>
+          <details><summary>O que está público no meu perfil?</summary><p>Seu nome, favoritas e comentários podem aparecer no perfil público. Você controla essa visibilidade nas configurações da conta.</p></details>
+          <details><summary>Este é o catálogo definitivo?</summary><p>{CATALOG_DEMO ? "Ainda não. As obras atuais apresentam a experiência enquanto a estante definitiva é preparada." : "O catálogo cresce conforme novas obras e capítulos são publicados."}</p></details>
         </div>
       </section>
     </>

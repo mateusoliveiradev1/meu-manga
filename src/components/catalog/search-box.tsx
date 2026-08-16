@@ -47,7 +47,7 @@ export function SearchBox() {
   }, []);
 
   return (
-    <form ref={rootRef} className="header-search" action="/" method="get" role="search" onSubmit={() => setOpen(false)}>
+    <form ref={rootRef} className="header-search" action="/obras" method="get" role="search" onSubmit={() => setOpen(false)}>
       <input
         type="search"
         name="q"
@@ -55,13 +55,13 @@ export function SearchBox() {
         onChange={(event) => setQuery(event.target.value)}
         onFocus={() => rows.length > 0 && setOpen(true)}
         onKeyDown={(event) => event.key === "Escape" && setOpen(false)}
-        placeholder="Buscar obras…"
-        aria-label="Buscar obras"
+        placeholder="Buscar por título ou gênero…"
+        aria-label="Buscar no catálogo"
         aria-controls={id}
         aria-expanded={open}
         autoComplete="off"
       />
-      <button type="submit" aria-label="Buscar">
+      <button type="submit" aria-label="Buscar no catálogo">
         <IconSearch size={15} />
       </button>
       {open && (
@@ -74,7 +74,7 @@ export function SearchBox() {
               </Link>
             ))
           ) : (
-            <span className="search-empty">Nenhuma obra encontrada.</span>
+            <span className="search-empty">Nenhuma história corresponde a essa busca.</span>
           )}
         </div>
       )}

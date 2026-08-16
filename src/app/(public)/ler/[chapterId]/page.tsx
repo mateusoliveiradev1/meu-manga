@@ -110,7 +110,7 @@ export default async function ReaderPage({
         authenticated={Boolean(user)}
       />
 
-      <div className="comments">
+      <div className="comments" id="comentarios">
         <div className="speed-divider" aria-hidden="true" />
         <div className="section-head">
           <h2>Comentários deste capítulo</h2>

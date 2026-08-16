@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { authClient } from "@/features/auth/client";
 import { setRatingAction } from "@/features/ratings/actions";
 import { IconStar } from "@/components/ui/icons";
+import { authPath } from "@/lib/navigation";
 
 export function RatingStars({
   seriesId,
@@ -18,6 +20,7 @@ export function RatingStars({
   mine: number | null;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session, isPending } = authClient.useSession();
   const [hover, setHover] = useState(0);
   const [value, setValue] = useState<number | null>(mine);
@@ -62,7 +65,7 @@ export function RatingStars({
       <span className="rating-count">
         {count === 0 ? "sem notas ainda" : `${count} ${count === 1 ? "nota" : "notas"}`}
       </span>
-      {!logged && <span className="rating-hint">entre para dar sua nota</span>}
+      {!logged && <Link className="rating-hint" href={authPath("entrar", pathname, "avaliacao")}>entre para dar sua nota</Link>}
     </div>
   );
 }

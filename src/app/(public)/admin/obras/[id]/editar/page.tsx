@@ -13,7 +13,8 @@ export default async function EditSeriesPage({ params }: { params: Promise<{ id:
 
   return (
     <section className="section" aria-label="Editar obra">
-      <h2>Editar obra</h2>
+      <h2>Identidade da obra</h2>
+      <p className="muted">Revise como esta história aparece no catálogo e nas buscas.</p>
       <div className="manga-panel form-panel">
         <SeriesForm
           seriesId={series.id}

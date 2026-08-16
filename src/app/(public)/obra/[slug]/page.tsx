@@ -74,8 +74,8 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="mt-2">
-        <Link href="/" className="btn ghost small">
-          <IconArrowLeft size={14} /> Voltar às obras
+        <Link href="/obras" className="btn ghost small">
+          <IconArrowLeft size={14} /> Voltar ao catálogo
         </Link>
       </div>
 
@@ -96,12 +96,16 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
           <p className="obra-desc">{series.synopsis}</p>
           <GenreChips tags={series.tags} />
           <div className="obra-actions mt-2">
-            {firstChapter ? (
+            {serverProgress ? (
+              <Link className="btn" href={`/ler/${serverProgress.chapterId}`}>
+                Continuar na página {serverProgress.page + 1} <IconArrowRight size={16} />
+              </Link>
+            ) : firstChapter ? (
               <Link className="btn" href={`/ler/${firstChapter.id}`}>
-                Ler do início <IconArrowRight size={16} />
+                Começar pelo capítulo 1 <IconArrowRight size={16} />
               </Link>
             ) : (
-              <span className="muted">Ainda sem capítulos publicados.</span>
+              <span className="muted">O primeiro capítulo está em produção.</span>
             )}
             <FavoriteButton seriesId={series.id} title={series.title} initial={series.favorite} />
           </div>
@@ -130,8 +134,8 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
 
         {chapters.length === 0 ? (
           <div className="manga-panel empty-state">
-            <div className="empty-title">Em breve...</div>
-            <p>O primeiro capítulo ainda está sendo desenhado. Volte em breve!</p>
+            <div className="empty-title">Esta história está só começando</div>
+            <p>O primeiro capítulo ainda não foi publicado. Guarde a obra na sua estante para encontrá-la com facilidade.</p>
           </div>
         ) : (
           <div className="manga-panel chapter-list">
@@ -194,7 +198,7 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
 
       <div className="hairline" aria-hidden="true" />
 
-      <section className="section" aria-label="Comentários da obra">
+      <section className="section" id="comentarios" aria-label="Comentários da obra">
         <div className="section-head">
           <div className="section-head-title">
             <span className="section-idx mono-num" aria-hidden="true">

@@ -17,20 +17,21 @@ export default async function CapitulosPage() {
       <section className="page-head" aria-label="Arquivo de capítulos">
         <h1>Capítulos</h1>
         <p className="page-sub">
-          Todos os capítulos publicados, do mais recente ao mais antigo —{" "}
-          {rows.length === 0 ? "nada publicado ainda" : `${rows.length} ${rows.length === 1 ? "capítulo" : "capítulos"} no ar`}.
+          Acompanhe o que acabou de chegar à estante —{" "}
+          {rows.length === 0 ? "nenhum capítulo publicado ainda" : `${rows.length} ${rows.length === 1 ? "capítulo disponível" : "capítulos disponíveis"}`}.
         </p>
       </section>
 
       {rows.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-title">O estúdio está em silêncio...</div>
-          <p>O primeiro capítulo ainda está sendo desenhado. Volte em breve!</p>
+          <div className="empty-title">O primeiro capítulo está em produção</div>
+          <p>Quando ele for publicado, aparecerá aqui com a data e a obra a que pertence.</p>
+          <Link href="/obras" className="btn ghost mt-1">Explorar obras</Link>
         </div>
       ) : (
         <div className="chapter-archive">
           {rows.map((c, i) => (
-            <Link key={c.id} href={`/ler/${c.id}`} className="ch-row">
+            <Link key={c.id} href={`/capitulo/${c.id}`} className="ch-row">
               <span className="ch-idx mono-num" aria-hidden="true">
                 {String(rows.length - i).padStart(2, "0")}
               </span>

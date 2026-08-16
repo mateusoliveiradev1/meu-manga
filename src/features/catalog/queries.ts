@@ -259,7 +259,7 @@ export async function getSeriesByIds(ids: number[]): Promise<typeof series.$infe
 
 export async function getPublicProfile(userId: string) {
   const [u] = await db
-    .select({ id: user.id, name: user.name, role: user.role, createdAt: user.createdAt })
+    .select({ id: user.id, name: user.name, image: user.image, role: user.role, createdAt: user.createdAt, favoritesPublic: user.favoritesPublic, commentsPublic: user.commentsPublic })
     .from(user)
     .where(eq(user.id, userId))
     .limit(1);
@@ -269,6 +269,15 @@ export async function getPublicProfile(userId: string) {
     db.select({ c: count() }).from(comments).where(and(eq(comments.userId, userId), eq(comments.hidden, false))),
   ]);
   return { ...u, favoriteCount: favs[0]?.c ?? 0, commentCount: cmts[0]?.c ?? 0 };
+}
+
+export async function getProfileSettings(userId: string) {
+  const [row] = await db
+    .select({ name: user.name, image: user.image, favoritesPublic: user.favoritesPublic, commentsPublic: user.commentsPublic })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+  return row;
 }
 
 export async function getUserFavorites(userId: string) {

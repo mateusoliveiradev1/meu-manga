@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/features/auth/client";
 import { addCommentAction } from "@/features/comments/actions";
 import { saveProgressAction } from "@/features/reader/actions";
 import { IconArrowLeft, IconArrowRight, IconChat, IconBook } from "@/components/ui/icons";
 import { cloudinaryImageUrl, READER_WIDTHS, responsiveImageProps } from "@/lib/images";
+import { authPath } from "@/lib/navigation";
 
 type PageSrc = { id: number; src: string };
 
@@ -382,8 +383,9 @@ export function Reader({
           ))}
         </div>
       </div>
-      <div className="reader-progress" aria-hidden="true">
+      <div className="reader-progress" role="progressbar" aria-label="Progresso do capítulo" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
         <div className="bar" style={{ transform: `scaleX(${Math.max(0.02, progress)})` }} />
+        <span className="sr-only">{pageLabel}</span>
       </div>
 
       {mode === "page" && (
@@ -678,6 +680,7 @@ export function ResumeNote({
 
 export function CommentForm({ chapterId, seriesId }: { chapterId?: number; seriesId?: number }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session } = authClient.useSession();
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
@@ -687,9 +690,9 @@ export function CommentForm({ chapterId, seriesId }: { chapterId?: number; serie
   if (!session?.user) {
     return (
       <p className="manga-panel cm-login-hint">
-        <IconChat size={16} /> Quer comentar?{" "}
-        <Link href="/entrar">Entre na sua conta</Link> ou{" "}
-        <Link href="/cadastro">crie uma</Link> — comentar agora exige login.
+        <IconChat size={16} /> Quer participar da conversa?{" "}
+        <Link href={authPath("entrar", `${pathname}#comentarios`, "comentario")}>Entre para comentar</Link> ou{" "}
+        <Link href={authPath("cadastro", `${pathname}#comentarios`, "comentario")}>crie sua estante</Link>. Você volta para esta conversa depois.
       </p>
     );
   }
@@ -726,16 +729,16 @@ export function CommentForm({ chapterId, seriesId }: { chapterId?: number; serie
           onChange={(e) => setContent(e.target.value)}
           maxLength={500}
           rows={3}
-          placeholder="Escreva seu comentário sobre este capítulo..."
+          placeholder={chapterId ? "O que mais chamou sua atenção neste capítulo?" : "O que você achou desta história?"}
         />
       </div>
       <label className="cm-spoiler-toggle">
         <input type="checkbox" checked={spoiler} onChange={(event) => setSpoiler(event.target.checked)} />
         Este comentário contém spoiler
       </label>
-      {error && <div className="form-error">{error}</div>}
+      {error && <div className="form-error" role="alert">{error}</div>}
       <button type="submit" className="btn" disabled={sending}>
-        <IconChat size={16} /> {sending ? "Publicando..." : "Comentar"}
+        <IconChat size={16} /> {sending ? "Publicando…" : "Publicar comentário"}
       </button>
     </form>
   );

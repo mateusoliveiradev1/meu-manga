@@ -87,13 +87,13 @@ export function AccountSecurity({ canDelete }: { canDelete: boolean }) {
           {canDelete && (
             <div className="danger-zone">
               <h3>Apagar conta</h3>
-              <p>Remove permanentemente seu perfil, favoritos, progresso e comentários.</p>
+              <p>Remove permanentemente perfil, favoritas, progresso e comentários. Esta ação não pode ser desfeita.</p>
               {!deleteOpen ? (
                 <button className="btn danger" type="button" onClick={() => setDeleteOpen(true)}><IconTrash size={14} /> Apagar minha conta</button>
               ) : (
                 <div className="stack delete-confirm">
-                  <input type="password" autoComplete="current-password" placeholder="Senha atual" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} />
-                  <input placeholder="Digite APAGAR" value={deleteConfirm} onChange={(event) => setDeleteConfirm(event.target.value)} />
+                  <div className="field"><label htmlFor="delete-password">Senha atual</label><input id="delete-password" type="password" autoComplete="current-password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} /></div>
+                  <div className="field"><label htmlFor="delete-confirm">Confirmação</label><input id="delete-confirm" placeholder="Digite APAGAR" value={deleteConfirm} onChange={(event) => setDeleteConfirm(event.target.value)} /></div>
                   <div className="row">
                     <button className="btn danger" type="button" disabled={busy} onClick={deleteAccount}>Confirmar exclusão</button>
                     <button className="btn ghost" type="button" onClick={() => setDeleteOpen(false)}>Cancelar</button>
@@ -104,8 +104,8 @@ export function AccountSecurity({ canDelete }: { canDelete: boolean }) {
           )}
         </div>
       </div>
-      {error && <div className="form-error mt-1">{error}</div>}
-      {message && <div className="form-success mt-1">{message}</div>}
+      {error && <div className="form-error mt-1" role="alert">{error}</div>}
+      {message && <div className="form-success mt-1" role="status">{message}</div>}
     </section>
   );
 }

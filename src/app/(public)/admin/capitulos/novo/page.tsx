@@ -16,9 +16,9 @@ export default async function NewChapterPage({ searchParams }: { searchParams: P
   return (
     <section className="section" aria-label="Novo capítulo">
       <h2>
-        Novo capítulo de <span className="accent">{series.title}</span>
+        Começar capítulo de <span className="accent">{series.title}</span>
       </h2>
-      <p className="muted">Depois de criar, você adiciona as páginas (arquivos ou URLs).</p>
+      <p className="muted">Defina número e título; na próxima tela você organiza as páginas e escolhe quando publicar.</p>
       <div className="manga-panel form-panel">
         <ChapterForm seriesId={series.id} />
       </div>

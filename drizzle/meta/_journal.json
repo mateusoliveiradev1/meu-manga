@@ -78,6 +78,13 @@
       "when": 1786900203752,
       "tag": "0010_lush_shinobi_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786907583543,
+      "tag": "0011_bouncy_triathlon",
+      "breakpoints": true
     }
   ]
 }

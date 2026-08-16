@@ -23,6 +23,10 @@ function gridHref(base: string, params: Record<string, string | undefined>): str
   return qs ? `${base}?${qs}` : base;
 }
 
+function genreHref(slug: string, q?: string, sort: SeriesSort = "recent"): string {
+  return gridHref(`/genero/${slug}`, { q, sort: sort === "recent" ? undefined : sort });
+}
+
 export function SortTabs({
   base,
   q,
@@ -61,21 +65,21 @@ export function GenreBar({
   sort: SeriesSort;
 }) {
   const selected = genre ? GENRES.find((item) => item.slug === genre) : undefined;
-  const primary = GENRES.slice(0, 6);
+  const primary = GENRES.slice(0, 4);
   if (selected && !primary.some((item) => item.slug === selected.slug)) primary.push(selected);
   const more = GENRES.filter((item) => !primary.some((visible) => visible.slug === item.slug));
 
   return (
     <div className="genre-bar" role="group" aria-label="Filtrar por gênero">
       <div className="genre-primary">
-        <Link className={!genre ? "active" : ""} href={gridHref(base, { q, sort: sort === "recent" ? undefined : sort })}>
+        <Link className={!genre ? "active" : ""} href={gridHref("/obras", { q, sort: sort === "recent" ? undefined : sort })}>
           Todas
         </Link>
         {primary.map((g) => (
           <Link
             key={g.slug}
             className={genre === g.slug ? "active" : ""}
-            href={gridHref(base, { q, genero: g.slug, sort: sort === "recent" ? undefined : sort })}
+            href={genreHref(g.slug, q, sort)}
           >
             {g.name}
           </Link>
@@ -88,7 +92,7 @@ export function GenreBar({
             {more.map((g) => (
               <Link
                 key={g.slug}
-                href={gridHref(base, { q, genero: g.slug, sort: sort === "recent" ? undefined : sort })}
+                href={genreHref(g.slug, q, sort)}
               >
                 {g.name}
               </Link>
@@ -149,6 +153,7 @@ export function SeriesGrid({
   genre,
   sort = "recent",
   showGenreBar = true,
+  showToolbar = true,
   page = 1,
 }: {
   series: SeriesWithStats[];
@@ -157,6 +162,7 @@ export function SeriesGrid({
   genre?: string;
   sort?: SeriesSort;
   showGenreBar?: boolean;
+  showToolbar?: boolean;
   page?: number;
 }) {
   const perPage = 18;
@@ -166,21 +172,24 @@ export function SeriesGrid({
   const empty =
     series.length === 0 ? (
       <div className="empty-state">
-        <div className="empty-title">{q || genre ? "Nada por aqui..." : "O estúdio está em silêncio..."}</div>
+        <div className="empty-title">{q || genre ? "Nenhuma história encontrada" : "A estante ainda está vazia"}</div>
         <p>
           {q || genre
-            ? "Nenhuma obra bate com o filtro. Tente outra busca ou outro gênero."
-            : "O primeiro volume ainda está sendo desenhado. Volte em breve!"}
+            ? "Tente remover um filtro ou buscar por outro título."
+            : "A primeira história está sendo preparada. Volte em breve para começar a leitura."}
         </p>
+        {(q || genre) && <Link className="btn ghost small mt-1" href="/obras">Limpar busca e filtros</Link>}
       </div>
     ) : null;
 
   return (
     <>
-      <div className="catalog-toolbar">
-        {showGenreBar && <GenreBar base={base} q={q} genre={genre} sort={sort} />}
-        <SortTabs base={base} q={q} genre={genre} sort={sort} />
-      </div>
+      {showToolbar && (
+        <div className="catalog-toolbar">
+          {showGenreBar && <GenreBar base={base} q={q} genre={genre} sort={sort} />}
+          <SortTabs base={base} q={q} genre={genre} sort={sort} />
+        </div>
+      )}
       {empty ?? (
         <div className="cover-grid">
           {visibleSeries.map((s) => (

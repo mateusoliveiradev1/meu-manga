@@ -314,11 +314,11 @@ export function SeriesForm({
           </div>
         )}
       </div>
-      {error && <div className="form-error">{error}</div>}
-      {draftKey && draftReady && <p className="draft-note">Rascunho salvo automaticamente neste aparelho.</p>}
+      {error && <div className="form-error" role="alert">{error}</div>}
+      {draftKey && draftReady && <p className="draft-note" role="status">Rascunho protegido automaticamente neste aparelho.</p>}
       <div className="row">
         <button type="submit" className="btn" disabled={saving}>
-          {saving ? "Salvando..." : "Salvar obra"}
+          {saving ? "Salvando…" : initial ? "Salvar alterações" : "Criar obra e adicionar capítulos"}
         </button>
         <a href="/admin" className="btn ghost">
           Cancelar
@@ -502,10 +502,10 @@ export function ChapterForm({
         />
         <span>Publicar agora (fica visível para os leitores)</span>
       </label>
-      {error && <div className="form-error">{error}</div>}
-      {draftKey && draftReady && <p className="draft-note">Rascunho salvo automaticamente neste aparelho.</p>}
+      {error && <div className="form-error" role="alert">{error}</div>}
+      {draftKey && draftReady && <p className="draft-note" role="status">Rascunho protegido automaticamente neste aparelho.</p>}
       <button type="submit" className="btn" disabled={saving}>
-        {saving ? "Salvando..." : chapterId ? "Salvar capítulo" : "Criar capítulo"}
+        {saving ? "Salvando…" : chapterId ? "Salvar capítulo" : "Criar capítulo e adicionar páginas"}
       </button>
     </form>
   );
@@ -664,7 +664,7 @@ export function PageManager({ chapterId, initialPages }: { chapterId: number; in
         )}
       </div>
 
-      {pages.length === 0 && <p className="muted">Nenhuma página ainda. Envie arquivos ou cole URLs abaixo.</p>}
+      {pages.length === 0 && <div className="empty-state compact"><div className="empty-title">O capítulo ainda não tem páginas</div><p>Envie imagens, importe um ZIP/CBZ ou cole URLs para montar a sequência.</p></div>}
 
       {pages.map((p, i) => (
         <div
@@ -740,7 +740,7 @@ export function PageManager({ chapterId, initialPages }: { chapterId: number; in
             disabled={busy}
           >
             <IconPlus size={14} />
-            {busy && progress ? `Enviando ${progress.done}/${progress.total}...` : "Escolher arquivos"}
+            {busy && progress ? `Enviando ${progress.done} de ${progress.total}…` : "Selecionar páginas"}
           </button>
         </div>
         <div className="pm-url mt-1" style={{ justifyContent: "center" }}>
@@ -752,7 +752,7 @@ export function PageManager({ chapterId, initialPages }: { chapterId: number; in
             rows={2}
           />
           <button type="button" className="btn ghost small" onClick={addUrls} disabled={busy}>
-            <IconLink size={14} /> Adicionar URLs
+            <IconLink size={14} /> Importar URLs
           </button>
         </div>
         <div className="pm-upload mt-1" style={{ justifyContent: "center" }}>
@@ -782,7 +782,7 @@ export function PageManager({ chapterId, initialPages }: { chapterId: number; in
         </div>
       </div>
 
-      {error && <div className="form-error">{error}</div>}
+      {error && <div className="form-error" role="alert">{error}</div>}
     </div>
   );
 }

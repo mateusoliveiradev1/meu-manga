@@ -18,6 +18,16 @@ export default async function AdminDashboardPage() {
     getOperationalMetrics(30),
   ]);
   const maxViews = Math.max(1, ...daily.map((d) => d.views));
+  const needsEditorial = seriesList.find((work) => !work.cover.trim() || work.synopsis.trim().length < 80);
+  const nextAction = seriesList.length === 0
+    ? { title: "Comece a primeira obra", description: "Cadastre título, capa e sinopse para abrir a estante.", href: "/admin/obras/novo", label: "Criar primeira obra" }
+    : needsEditorial
+      ? { title: `Complete “${needsEditorial.title}”`, description: !needsEditorial.cover.trim() ? "A obra ainda precisa de uma capa antes de ganhar destaque." : "A sinopse precisa contar melhor por que esta história merece ser aberta.", href: `/admin/obras/${needsEditorial.id}/editar`, label: "Revisar obra" }
+      : operations.editorial.drafts > 0
+        ? { title: "Há capítulos esperando revisão", description: `${operations.editorial.drafts} ${operations.editorial.drafts === 1 ? "rascunho precisa" : "rascunhos precisam"} de páginas, prévia ou data de publicação.`, href: `/admin/obras/${seriesList[0].id}/capitulos`, label: "Revisar capítulos" }
+        : openReports > 0
+          ? { title: "A comunidade precisa de atenção", description: `${openReports} ${openReports === 1 ? "denúncia aguarda" : "denúncias aguardam"} uma decisão.`, href: "/admin/comentarios", label: "Abrir moderação" }
+          : { title: "A estante está pronta para crescer", description: "Crie o próximo capítulo e mantenha a sequência de publicação.", href: `/admin/capitulos/novo?obra=${seriesList[0].id}`, label: "Criar capítulo" };
 
   const cards = [
     { icon: <IconChat size={18} />, num: openReports, label: "denúncias", href: "/admin/comentarios" },
@@ -30,6 +40,11 @@ export default async function AdminDashboardPage() {
 
   return (
     <>
+      <section className="admin-focus" aria-labelledby="next-action-title">
+        <div><span className="admin-focus-label">Próxima ação</span><h2 id="next-action-title">{nextAction.title}</h2><p>{nextAction.description}</p></div>
+        <Link className="btn" href={nextAction.href}>{nextAction.label} <IconArrowRight size={14} /></Link>
+      </section>
+
       <div className="stat-grid">
         {cards.map((c) =>
           c.href ? (
@@ -66,7 +81,7 @@ export default async function AdminDashboardPage() {
           {daily.every((d) => d.views === 0) ? (
             <p className="muted">Ainda sem leituras registradas por dia — abra um capítulo publicado para ver o gráfico crescer.</p>
           ) : (
-            <div className="chart-bars" role="img" aria-label="Leituras por dia nos últimos 14 dias">
+            <div className="chart-bars" role="img" aria-label="Gráfico de leituras por dia nos últimos 14 dias. Os valores também estão disponíveis abaixo.">
               {daily.map((d) => (
                 <div key={d.day} className="chart-col" title={`${d.day}: ${d.views} leituras`}>
                   <div className="chart-bar" style={{ height: `${Math.max(4, Math.round((d.views / maxViews) * 100))}%` }}>
@@ -77,22 +92,23 @@ export default async function AdminDashboardPage() {
               ))}
             </div>
           )}
+          <details className="chart-data"><summary>Ver valores por dia</summary><table><thead><tr><th>Dia</th><th>Leituras</th></tr></thead><tbody>{daily.map((day) => <tr key={day.day}><td>{day.day}</td><td>{day.views}</td></tr>)}</tbody></table></details>
         </div>
       </section>
 
       <section className="section" aria-label="Operação do estúdio">
         <div className="section-head">
           <h2>Operação · 30 dias</h2>
-          <span className="section-sub">leitura, tráfego e prontidão editorial</span>
+          <span className="section-sub">sinais para decidir o próximo passo</span>
         </div>
         <div className="ops-grid">
           <div className="manga-panel ops-panel">
-            <h3>Leitores</h3>
+            <h3>Leitura</h3>
             <div className="ops-metrics">
               <span><strong>{operations.activeReaders}</strong> leitores ativos</span>
               <span><strong>{operations.completedReads}</strong> capítulos concluídos</span>
             </div>
-            <h3>Páginas mais acessadas</h3>
+            <h3>Rotas mais acessadas</h3>
             {operations.topPaths.length ? (
               <ol className="ops-paths">
                 {operations.topPaths.map((row) => <li key={row.path}><code>{row.path}</code><span>{formatNumber(row.views)}</span></li>)}
@@ -138,7 +154,7 @@ export default async function AdminDashboardPage() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th></th>
+                  <th>Capa</th>
                   <th>Obra</th>
                   <th>Status</th>
                   <th>Capítulos</th>
@@ -150,24 +166,24 @@ export default async function AdminDashboardPage() {
               <tbody>
                 {seriesList.map((s) => (
                   <tr key={s.id}>
-                    <td>
+                    <td data-label="Capa">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img className="cell-thumb" src={s.cover || "/samples/cover-farol.svg"} alt="" />
                     </td>
-                    <td className="cell-title">
+                    <td className="cell-title" data-label="Obra">
                       <Link href={`/admin/obras/${s.id}/capitulos`}>{s.title}</Link>
                     </td>
-                    <td className="muted">{s.status}</td>
-                    <td>{s.chapterCount}</td>
-                    <td>{formatNumber(s.views)}</td>
-                    <td className="muted">{formatDate(s.lastUpdate)}</td>
-                    <td>
+                    <td className="muted" data-label="Status">{s.status}</td>
+                    <td data-label="Capítulos">{s.chapterCount}</td>
+                    <td data-label="Leituras">{formatNumber(s.views)}</td>
+                    <td className="muted" data-label="Atualizada">{formatDate(s.lastUpdate)}</td>
+                    <td data-label="Ações">
                       <div className="cell-actions">
                         <Link href={`/admin/obras/${s.id}/editar`} className="btn small ghost">
-                          Editar
+                          Editar dados
                         </Link>
                         <Link href={`/obra/${s.slug}`} className="btn small ghost">
-                          Ver
+                          Ver publicada
                         </Link>
                         <DeleteButton kind="series" id={s.id} label={`a obra ${s.title}`} redirect="/admin" />
                       </div>

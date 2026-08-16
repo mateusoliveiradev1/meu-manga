@@ -1,23 +1,25 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/features/auth/session";
-import { getUserFavorites, getUserProgress } from "@/features/catalog/queries";
+import { getProfileSettings, getUserFavorites, getUserProgress } from "@/features/catalog/queries";
 import { getCommentsByUser } from "@/features/comments/queries";
 import { CommentContent, DeleteComment } from "@/components/reader/comment-actions";
 import { IconArrowRight, IconBook, IconChat, IconEye, IconGear, IconStar } from "@/components/ui/icons";
 import { AccountSecurity } from "@/components/profile/account-security";
+import { ProfileSettings } from "@/components/profile/profile-settings";
 import { chapterLabel, formatDate, initials } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function PerfilPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/entrar");
+  if (!user) redirect("/entrar?next=%2Fperfil&motivo=perfil");
 
-  const [favs, progress, myComments] = await Promise.all([
+  const [favs, progress, myComments, settings] = await Promise.all([
     getUserFavorites(user.id),
     getUserProgress(user.id),
     getCommentsByUser(user.id, 10),
+    getProfileSettings(user.id),
   ]);
 
   const createdAt = user.createdAt ? new Date(user.createdAt) : null;
@@ -26,7 +28,7 @@ export default async function PerfilPage() {
   return (
     <>
       <section className="manga-panel profile-card" aria-label="Seu perfil">
-        <span className="profile-avatar">{initials(user.name)}</span>
+        {user.image ? <img className="profile-avatar profile-avatar-image" src={user.image} alt="" /> : <span className="profile-avatar">{initials(user.name)}</span>}
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className="profile-name">{user.name}</div>
           <div className="profile-mail mono-num">{user.email}</div>
@@ -43,7 +45,7 @@ export default async function PerfilPage() {
           <div className="profile-stat" role="listitem">
             <span className="mono-num">{progress.length}</span>
             <span className="stat-label">
-              <IconBook size={12} /> em andamento
+              <IconBook size={12} /> leituras
             </span>
           </div>
           <div className="profile-stat" role="listitem">
@@ -53,7 +55,7 @@ export default async function PerfilPage() {
             </span>
           </div>
           <div className="profile-stat" role="listitem">
-            <span className="mono-num">{myComments.length}+</span>
+            <span className="mono-num">{myComments.length}</span>
             <span className="stat-label">
               <IconChat size={12} /> comentários
             </span>
@@ -82,12 +84,12 @@ export default async function PerfilPage() {
             </h2>
           </div>
           <span className="section-sub">
-            {inProgress > 0 ? `${inProgress} ${inProgress === 1 ? "obra no meio" : "obras no meio"} — de onde você parou` : "sua estante de leituras"}
+            {inProgress > 0 ? `${inProgress} ${inProgress === 1 ? "história em andamento" : "histórias em andamento"}` : "seu histórico de leitura"}
           </span>
         </div>
         {progress.length === 0 ? (
           <div className="manga-panel empty-state">
-            <p>Você ainda não começou nenhuma leitura. Explore as obras e boa leitura!</p>
+            <div className="empty-title">Nenhuma leitura iniciada</div><p>Abra uma história e seu progresso aparecerá aqui automaticamente.</p><Link href="/obras" className="btn ghost mt-1">Encontrar uma história</Link>
           </div>
         ) : (
           <div className="manga-panel chapter-list">
@@ -149,7 +151,7 @@ export default async function PerfilPage() {
         </div>
         {favs.length === 0 ? (
           <div className="manga-panel empty-state">
-            <p>Nada por aqui ainda — toque na estrela de uma obra para guardá-la.</p>
+            <div className="empty-title">Sua estante ainda está vazia</div><p>Use a estrela para guardar as histórias que quiser acompanhar.</p><Link href="/obras" className="btn ghost mt-1">Explorar histórias</Link>
           </div>
         ) : (
           <div className="row" style={{ gap: "0.9rem" }}>
@@ -174,11 +176,11 @@ export default async function PerfilPage() {
               <IconChat size={18} /> Meus comentários
             </h2>
           </div>
-          <span className="section-sub">o que você escreveu por aqui</span>
+          <span className="section-sub">sua atividade recente</span>
         </div>
         {myComments.length === 0 ? (
           <div className="manga-panel empty-state">
-            <p>Você ainda não comentou em nenhum capítulo. Depois de ler, deixe sua opinião!</p>
+            <div className="empty-title">Nenhum comentário publicado</div><p>Depois de uma leitura, conte o que mais chamou sua atenção.</p>
           </div>
         ) : (
           <div className="stack">
@@ -205,6 +207,7 @@ export default async function PerfilPage() {
           </div>
         )}
       </section>
+      {settings && <ProfileSettings initial={{ name: settings.name, image: settings.image ?? "", favoritesPublic: settings.favoritesPublic, commentsPublic: settings.commentsPublic }} />}
       <AccountSecurity canDelete={user.role !== "admin"} />
     </>
   );
