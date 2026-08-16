@@ -209,3 +209,19 @@ export function IconLogout(props: IconProps) {
     </svg>
   );
 }
+
+export function IconFlag(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 21V4m0 1h10l-1.5 3L15 11H5" />
+    </svg>
+  );
+}
+
+export function IconEyeOff(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="m3 3 18 18M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 5.2A10.7 10.7 0 0 1 12 5c5.5 0 9 7 9 7a15.6 15.6 0 0 1-2.1 3.1M6.6 6.6C4.4 8.1 3 12 3 12s3.5 7 9 7a9.8 9.8 0 0 0 3.4-.6" />
+    </svg>
+  );
+}

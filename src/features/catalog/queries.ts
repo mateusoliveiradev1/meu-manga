@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gt, gte, ilike, inArray, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { chapters, comments, pages, readingStats, series, seriesRatings, user, userFavorites, userProgress } from "@/db/schema";
+import { chapters, comments, pages, pageViews, readingStats, series, seriesRatings, user, userFavorites, userProgress } from "@/db/schema";
 import { publishDueChapters } from "@/features/catalog/publish";
 import { genresIn, hasGenre } from "@/lib/genres";
 
@@ -95,15 +95,23 @@ export async function getChaptersBySeries(seriesId: number, onlyPublished = fals
     : eq(chapters.seriesId, seriesId);
   const rows = await db.select().from(chapters).where(where).orderBy(chapters.number);
   const ids = rows.map((r) => r.id);
-  const counts = ids.length
-    ? await db
-        .select({ chapterId: comments.chapterId, n: sql<number>`count(*)::int` })
-        .from(comments)
-        .where(inArray(comments.chapterId, ids))
-        .groupBy(comments.chapterId)
-    : [];
-  const map = new Map(counts.map((c) => [c.chapterId, Number(c.n)]));
-  return rows.map((r) => ({ ...r, commentCount: map.get(r.id) ?? 0 }));
+  const [commentCounts, pageCounts] = ids.length
+    ? await Promise.all([
+        db
+          .select({ chapterId: comments.chapterId, n: sql<number>`count(*)::int` })
+          .from(comments)
+          .where(and(inArray(comments.chapterId, ids), eq(comments.hidden, false)))
+          .groupBy(comments.chapterId),
+        db
+          .select({ chapterId: pages.chapterId, n: sql<number>`count(*)::int` })
+          .from(pages)
+          .where(inArray(pages.chapterId, ids))
+          .groupBy(pages.chapterId),
+      ])
+    : [[], []];
+  const commentMap = new Map(commentCounts.map((item) => [item.chapterId, Number(item.n)]));
+  const pageMap = new Map(pageCounts.map((item) => [item.chapterId, Number(item.n)]));
+  return rows.map((r) => ({ ...r, commentCount: commentMap.get(r.id) ?? 0, pageCount: pageMap.get(r.id) ?? 0 }));
 }
 
 export async function getChapter(id: number) {
@@ -258,7 +266,7 @@ export async function getPublicProfile(userId: string) {
   if (!u) return undefined;
   const [favs, cmts] = await Promise.all([
     db.select({ c: count() }).from(userFavorites).where(eq(userFavorites.userId, userId)),
-    db.select({ c: count() }).from(comments).where(eq(comments.userId, userId)),
+    db.select({ c: count() }).from(comments).where(and(eq(comments.userId, userId), eq(comments.hidden, false))),
   ]);
   return { ...u, favoriteCount: favs[0]?.c ?? 0, commentCount: cmts[0]?.c ?? 0 };
 }
@@ -358,6 +366,43 @@ export async function getDailyViews(days = 14): Promise<{ day: string; views: nu
     out.push({ day: key, views: map.get(key) ?? 0 });
   }
   return out;
+}
+
+export async function getOperationalMetrics(days = 30) {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - (days - 1));
+
+  const [paths, progress, allSeries, allChapters] = await Promise.all([
+    db
+      .select({ path: pageViews.path, views: sql<number>`sum(${pageViews.views})::int` })
+      .from(pageViews)
+      .where(gte(pageViews.day, start))
+      .groupBy(pageViews.path)
+      .orderBy(desc(sql`sum(${pageViews.views})`))
+      .limit(5),
+    db
+      .select({
+        activeReaders: sql<number>`count(distinct ${userProgress.userId})::int`,
+        completedReads: sql<number>`count(*) filter (where ${userProgress.page} >= greatest((select count(*) from ${pages} p where p.chapter_id = ${userProgress.chapterId}) - 1, 0))::int`,
+      })
+      .from(userProgress)
+      .where(gte(userProgress.updatedAt, start)),
+    db.select().from(series),
+    db.select().from(chapters),
+  ]);
+
+  return {
+    topPaths: paths.map((row) => ({ path: row.path, views: Number(row.views) })),
+    activeReaders: Number(progress[0]?.activeReaders ?? 0),
+    completedReads: Number(progress[0]?.completedReads ?? 0),
+    editorial: {
+      missingCover: allSeries.filter((work) => !work.cover.trim()).length,
+      shortSynopsis: allSeries.filter((work) => work.synopsis.trim().length < 80).length,
+      drafts: allChapters.filter((chapter) => !chapter.published).length,
+      scheduled: allChapters.filter((chapter) => !chapter.published && chapter.publishAt && chapter.publishAt > new Date()).length,
+    },
+  };
 }
 
 export async function getSeriesRating(seriesId: number, userId?: string) {

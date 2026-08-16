@@ -85,7 +85,7 @@ async function optimizeImage(buffer: Buffer, ext: string): Promise<{ buffer: Buf
 }
 
 /** Persiste uma imagem e devolve a URL pública para gravar no banco. */
-export async function saveImage(buffer: Buffer, ext: string): Promise<string> {
+export async function saveImage(buffer: Buffer, ext: string, publicId?: string): Promise<string> {
   const optimized = await optimizeImage(buffer, ext);
   buffer = optimized.buffer;
   ext = optimized.ext;
@@ -96,7 +96,8 @@ export async function saveImage(buffer: Buffer, ext: string): Promise<string> {
     const dataUri = `data:${IMAGE_EXT[ext]};base64,${buffer.toString("base64")}`;
     const result = await cloudinary.uploader.upload(dataUri, {
       folder: "mangas",
-      public_id: crypto.randomUUID(),
+      public_id: publicId ?? crypto.randomUUID(),
+      overwrite: true,
       resource_type: "image",
     });
     return result.secure_url;
@@ -119,7 +120,7 @@ export async function saveImage(buffer: Buffer, ext: string): Promise<string> {
 
   const name = `${crypto.randomUUID()}.${ext}`;
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-  fs.writeFileSync(path.join(UPLOAD_DIR, name), buffer);
+  fs.writeFileSync(path.join(/* turbopackIgnore: true */ UPLOAD_DIR, name), buffer);
   return `/api/files/${name}`;
 }
 

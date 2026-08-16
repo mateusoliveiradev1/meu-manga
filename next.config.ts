@@ -1,7 +1,31 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // nothing to externalize: the app runs fully on Postgres (Neon) + Next.js
+  poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+        ],
+      },
+    ];
+  },
+  outputFileTracingExcludes: {
+    "/*": [
+      ".git/**/*",
+      ".agents/**/*",
+      ".impeccable/**/*",
+      ".planning/**/*",
+      "backups/**/*",
+      "shots/**/*",
+      "scripts/**/*",
+    ],
+  },
 };
 
 export default nextConfig;

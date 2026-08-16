@@ -37,6 +37,7 @@ try {
   check("home carrega", (await page.content()).includes('href="/entrar"') || (await page.content()).includes("site-header"));
   const SERIES_SLUG = TITLE.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   let TEST_CHAPTER_ID = null;
+  let chapterCommentText = "";
 
   // 1b. header: search + genres dropdown + about link
   check("header tem busca", (await page.locator(".header-search input").count()) === 1);
@@ -76,6 +77,14 @@ try {
     return res.status;
   }));
   check("sitemap/robots/rss/manifest no ar", seo.every((s) => s === 200), seo.join(","));
+  const health = await fetch(BASE + "/api/health");
+  const healthBody = await health.json();
+  check("health check confirma banco e storage", health.status === 200 && healthBody.ok && healthBody.database === "reachable");
+  const homeHeaders = await fetch(BASE + "/");
+  check(
+    "headers de segurança ativos",
+    homeHeaders.headers.get("x-content-type-options") === "nosniff" && homeHeaders.headers.get("x-frame-options") === "DENY"
+  );
 
   // 2. register (fall back to login if the account already exists)
   await page.goto(BASE + "/cadastro", { waitUntil: "load" });
@@ -88,6 +97,8 @@ try {
     .then(() => true)
     .catch(() => false);
   if (!regRedirected) {
+    const signupError = await page.locator(".form-error").textContent().catch(() => "");
+    if (signupError) console.log("Erro no cadastro:", signupError);
     // account already exists — log in instead
     await page.goto(BASE + "/entrar", { waitUntil: "load" });
     await page.fill("#login-email", EMAIL);
@@ -136,12 +147,15 @@ try {
     check("páginas adicionadas via URL", true);
 
     // 6b. upload a real image file through the panel file input
-    const pngB64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
-    fs.writeFileSync("e2e-upload.png", Buffer.from(pngB64, "base64"));
-    await page.setInputFiles(".pm-upload input[type=file]", "e2e-upload.png");
-    await page.waitForTimeout(3000);
-    fs.unlinkSync("e2e-upload.png");
-    check("página enviada por upload (arquivo real)", (await page.content()).includes("/api/files/"));
+    if (!process.env.E2E_SKIP_UPLOAD) {
+      const beforeUpload = await page.locator(".pm-row").count();
+      const pngB64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      fs.writeFileSync("e2e-upload.png", Buffer.from(pngB64, "base64"));
+      await page.setInputFiles(".pm-upload input[type=file]", "e2e-upload.png");
+      await page.waitForTimeout(3000);
+      fs.unlinkSync("e2e-upload.png");
+      check("página enviada por upload (arquivo real)", (await page.locator(".pm-row").count()) > beforeUpload);
+    }
 
     // 6c. preview: draft chapter is visible only to the admin with ?preview=1
     await page.goto(BASE + "/ler/" + TEST_CHAPTER_ID + "?preview=1", { waitUntil: "load" });
@@ -168,13 +182,13 @@ try {
   // 9. comment on the created chapter (logged in)
   await page.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
   await page.waitForSelector("#cm-msg", { timeout: 10000 });
-  const msg = `Comentário E2E ${Date.now()}`;
-  await page.fill("#cm-msg", msg);
+  chapterCommentText = `Comentário E2E ${Date.now()}`;
+  await page.fill("#cm-msg", chapterCommentText);
   await page.click('button:has-text("Comentar")');
   await page.waitForTimeout(2000);
   await page.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
   await page.waitForSelector(".cm-entry", { timeout: 10000 });
-  check("comentário salvo e visível", (await page.content()).includes(msg));
+  check("comentário salvo e visível", (await page.content()).includes(chapterCommentText));
 
   // 10. favorite the created series
   await page.goto(BASE + "/obra/" + SERIES_SLUG, { waitUntil: "load" });
@@ -239,6 +253,37 @@ try {
     "perfil mostra leituras, favoritas e comentários",
     profileHtml.includes("Continuar lendo") && profileHtml.includes("Favoritas") && profileHtml.includes("Meus comentários")
   );
+  // 13. community moderation: another reader reports; admin hides; public list updates
+  if (isAdminEmail && TEST_CHAPTER_ID && chapterCommentText) {
+    const readerContext = await browser.newContext();
+    const readerPage = await readerContext.newPage();
+    const readerEmail = `teste-leitor-${Date.now()}@exemplo.com`;
+    await readerPage.goto(BASE + "/cadastro", { waitUntil: "load" });
+    await readerPage.fill("#reg-name", "Leitor Moderacao");
+    await readerPage.fill("#reg-email", readerEmail);
+    await readerPage.fill("#reg-password", PASSWORD);
+    await readerPage.click('button:has-text("Criar conta")');
+    await readerPage.waitForURL(BASE + "/", { timeout: 15000 });
+    await readerPage.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
+    const reportedEntry = readerPage.locator(".cm-entry", { hasText: chapterCommentText });
+    await reportedEntry.locator('button:has-text("Denunciar")').click();
+    await reportedEntry.locator("select").selectOption("spam");
+    await reportedEntry.locator('button:has-text("Enviar denúncia")').click();
+    await readerPage.waitForTimeout(800);
+    check("leitor envia denúncia", (await reportedEntry.textContent()).includes("Denúncia enviada"));
+
+    await page.goto(BASE + "/admin/comentarios", { waitUntil: "load" });
+    const moderationEntry = page.locator(".moderation-entry", { hasText: chapterCommentText });
+    check("denúncia entra na fila do autor", (await moderationEntry.textContent()).includes("1 denúncias abertas"));
+    page.once("dialog", (dialog) => dialog.accept());
+    await moderationEntry.locator('button:has-text("Ocultar")').click();
+    await page.waitForTimeout(1000);
+    check("autor oculta comentário denunciado", ((await moderationEntry.getAttribute("class")) ?? "").includes("is-hidden"));
+
+    await readerPage.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
+    check("comentário oculto some da área pública", !(await readerPage.content()).includes(chapterCommentText));
+    await readerContext.close();
+  }
 } catch (err) {
   check("fluxo completo", false, err.message);
   console.log("URL no erro:", page.url());

@@ -1,6 +1,6 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { chapters, comments, series, user } from "@/db/schema";
+import { chapters, commentReports, comments, series, user } from "@/db/schema";
 
 export type CommentWithAuthor = typeof comments.$inferSelect & {
   authorName: string;
@@ -20,7 +20,7 @@ export async function getCommentsByChapter(chapterId: number, limit = 100): Prom
     })
     .from(comments)
     .innerJoin(user, eq(user.id, comments.userId))
-    .where(eq(comments.chapterId, chapterId))
+    .where(and(eq(comments.chapterId, chapterId), eq(comments.hidden, false)))
     .orderBy(comments.createdAt)
     .limit(limit);
 
@@ -38,7 +38,7 @@ export async function getCommentsBySeries(seriesId: number, limit = 100): Promis
     })
     .from(comments)
     .innerJoin(user, eq(user.id, comments.userId))
-    .where(eq(comments.seriesId, seriesId))
+    .where(and(eq(comments.seriesId, seriesId), eq(comments.hidden, false)))
     .orderBy(comments.createdAt)
     .limit(limit);
 
@@ -50,6 +50,7 @@ export type LatestComment = CommentWithAuthor & {
   chapterNumber: number | null;
   seriesTitle: string;
   seriesSlug: string;
+  reportCount?: number;
 };
 
 export async function getCommentsByUser(userId: string, limit = 10): Promise<LatestComment[]> {
@@ -69,7 +70,7 @@ export async function getCommentsByUser(userId: string, limit = 10): Promise<Lat
     .innerJoin(user, eq(user.id, comments.userId))
     .leftJoin(chapters, eq(chapters.id, comments.chapterId))
     .leftJoin(series, sql`${series.id} = coalesce(${comments.seriesId}, ${chapters.seriesId})`)
-    .where(eq(comments.userId, userId))
+    .where(and(eq(comments.userId, userId), eq(comments.hidden, false)))
     .orderBy(desc(comments.createdAt))
     .limit(limit);
 
@@ -98,6 +99,7 @@ export async function getAllComments(limit = 100): Promise<LatestComment[]> {
       chapterNumber: chapters.number,
       seriesTitle: sql<string>`coalesce(${series.title}, '')`,
       seriesSlug: sql<string>`coalesce(${series.slug}, '')`,
+      reportCount: sql<number>`(select count(*)::int from ${commentReports} r where r.comment_id = ${comments.id} and r.status = 'open')`,
     })
     .from(comments)
     .innerJoin(user, eq(user.id, comments.userId))
@@ -116,6 +118,7 @@ export async function getAllComments(limit = 100): Promise<LatestComment[]> {
     chapterNumber: r.chapterNumber,
     seriesTitle: r.seriesTitle,
     seriesSlug: r.seriesSlug,
+    reportCount: Number(r.reportCount),
   }));
 }
 
@@ -136,6 +139,7 @@ export async function getLatestComments(limit = 5): Promise<LatestComment[]> {
     .innerJoin(user, eq(user.id, comments.userId))
     .leftJoin(chapters, eq(chapters.id, comments.chapterId))
     .leftJoin(series, sql`${series.id} = coalesce(${comments.seriesId}, ${chapters.seriesId})`)
+    .where(eq(comments.hidden, false))
     .orderBy(desc(comments.createdAt))
     .limit(limit);
 
@@ -150,4 +154,9 @@ export async function getLatestComments(limit = 5): Promise<LatestComment[]> {
     seriesTitle: r.seriesTitle,
     seriesSlug: r.seriesSlug,
   }));
+}
+
+export async function getOpenReportCount(): Promise<number> {
+  const [row] = await db.select({ total: count() }).from(commentReports).where(eq(commentReports.status, "open"));
+  return Number(row?.total ?? 0);
 }

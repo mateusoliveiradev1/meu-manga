@@ -57,6 +57,27 @@
       "when": 1786769864748,
       "tag": "0007_misty_crusher_hogan",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786896281123,
+      "tag": "0008_stiff_blindfold",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786897019562,
+      "tag": "0009_sudden_spectrum",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786900203752,
+      "tag": "0010_lush_shinobi_shaw",
+      "breakpoints": true
     }
   ]
 }

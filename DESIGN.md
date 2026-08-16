@@ -210,9 +210,10 @@ Superfície mais escura do site: a página de manga flutua sobre o vazio (#05050
 - **Painel do autor**: gráfico de leituras por dia (14 dias) em barras amarelas sobre painel (valores em mono) + contadores; abas de ordenação seguem o mesmo token de chip ativo.
 - **Pré-visualização**: banner discreto "Prévia do autor" (borda amarela em fundo amarelo 12%) quando o admin lê um capítulo rascunho via `?preview=1`.
 - **Comunidade**: nome do autor de comentário vira link para o perfil público (`/leitores/[id]`); o autor do estúdio ganha badge "autor" (amarelo, discreto) ao lado do nome.
+- **Moderação**: leitores autenticados denunciam em um formulário inline discreto; o painel mostra denúncias abertas primeiro e permite ocultar/restaurar sem apagar o histórico.
 - **Perfis públicos**: mesma linguagem do perfil próprio (avatar, badges) com favoritas + comentários recentes, sem dados privados.
 - **SEO**: `og:image` com a capa por obra/capítulo, JSON-LD `ComicSeries`/`ComicIssue`, `sitemap.xml`, `robots.txt` e feed `rss.xml`.
-- **Imagens**: conversão automática para WebP (q. 82) no upload — capas e páginas ficam mais leves sem mudar de moldura.
+- **Imagens**: conversão automática para WebP (q. 82) no upload e entrega Cloudinary responsiva (`f_auto`, `q_auto`, `srcset`) — capas e páginas ficam mais leves sem mudar de moldura.
 
 ### Don't:
 - **Don't** usar gradiente em texto; ênfase vem de peso ou escala do Anton.

@@ -1,18 +1,26 @@
 import Link from "next/link";
 import { requireAdmin } from "@/features/auth/session";
-import { getDailyViews, getSeriesList, getStats } from "@/features/catalog/queries";
+import { getDailyViews, getOperationalMetrics, getSeriesList, getStats } from "@/features/catalog/queries";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { IconArrowRight, IconBook, IconChat, IconEye, IconImage, IconPen } from "@/components/ui/icons";
 import { DeleteButton } from "@/components/admin/forms";
+import { getOpenReportCount } from "@/features/comments/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
-  const [stats, seriesList, daily] = await Promise.all([getStats(), getSeriesList(), getDailyViews(14)]);
+  const [stats, seriesList, daily, openReports, operations] = await Promise.all([
+    getStats(),
+    getSeriesList(),
+    getDailyViews(14),
+    getOpenReportCount(),
+    getOperationalMetrics(30),
+  ]);
   const maxViews = Math.max(1, ...daily.map((d) => d.views));
 
   const cards = [
+    { icon: <IconChat size={18} />, num: openReports, label: "denúncias", href: "/admin/comentarios" },
     { icon: <IconBook size={18} />, num: stats.series, label: "obras" },
     { icon: <IconPen size={18} />, num: stats.chapters, label: "capítulos" },
     { icon: <IconImage size={18} />, num: stats.pages, label: "páginas" },
@@ -69,6 +77,41 @@ export default async function AdminDashboardPage() {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="section" aria-label="Operação do estúdio">
+        <div className="section-head">
+          <h2>Operação · 30 dias</h2>
+          <span className="section-sub">leitura, tráfego e prontidão editorial</span>
+        </div>
+        <div className="ops-grid">
+          <div className="manga-panel ops-panel">
+            <h3>Leitores</h3>
+            <div className="ops-metrics">
+              <span><strong>{operations.activeReaders}</strong> leitores ativos</span>
+              <span><strong>{operations.completedReads}</strong> capítulos concluídos</span>
+            </div>
+            <h3>Páginas mais acessadas</h3>
+            {operations.topPaths.length ? (
+              <ol className="ops-paths">
+                {operations.topPaths.map((row) => <li key={row.path}><code>{row.path}</code><span>{formatNumber(row.views)}</span></li>)}
+              </ol>
+            ) : <p className="muted">O tráfego aparecerá aqui conforme as visitas forem registradas.</p>}
+          </div>
+          <div className="manga-panel ops-panel">
+            <h3>Prontidão editorial</h3>
+            <ul className="editorial-checks">
+              <li className={operations.editorial.missingCover ? "needs-work" : "ready"}>
+                <span>Obras sem capa</span><strong>{operations.editorial.missingCover}</strong>
+              </li>
+              <li className={operations.editorial.shortSynopsis ? "needs-work" : "ready"}>
+                <span>Sinopses com menos de 80 caracteres</span><strong>{operations.editorial.shortSynopsis}</strong>
+              </li>
+              <li><span>Capítulos em rascunho</span><strong>{operations.editorial.drafts}</strong></li>
+              <li><span>Publicações agendadas</span><strong>{operations.editorial.scheduled}</strong></li>
+            </ul>
+          </div>
         </div>
       </section>
 

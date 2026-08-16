@@ -12,7 +12,7 @@ related_targets: ["src/app/(public)/admin/layout.tsx", "src/app/(public)/admin/o
 
 **Audience:** apenas o autor (papel `admin` via Better Auth, concedido pelo email em `ADMIN_EMAIL`).
 
-**Job / action:** criar e gerir obras/capítulos/páginas sem fricção. Dashboard com contadores mono (obras, capítulos, páginas, recados, leituras); tabelas com ações por linha; formulários com validação; editor de páginas com upload múltiplo **ou** URLs coladas (uma por linha) e reordenação por setas.
+**Job / action:** criar e gerir obras/capítulos/páginas sem fricção. Dashboard com contadores mono (obras, capítulos, páginas, recados, leituras), tráfego e prontidão editorial; fila de moderação com ocultar/restaurar; tabelas com ações por linha; formulários com validação; editor de páginas com upload múltiplo **ou** URLs coladas (uma por linha) e reordenação por setas.
 
 **Proof / content:** tabelas admin com números JetBrains Mono e badges de status; o mesmo chão tinta-preta, painéis de dupla moldura e botões amarelos — o mundo do site, no registro de operação.
 

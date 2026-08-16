@@ -1,14 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
-import { db } from "@/db/client";
-import { user as userTable } from "@/db/schema";
 import { getCurrentUser } from "@/features/auth/session";
 import { getUserFavorites, getUserProgress } from "@/features/catalog/queries";
 import { getCommentsByUser } from "@/features/comments/queries";
-import { DeleteComment } from "@/components/reader/comment-actions";
-import { NotifyToggle } from "@/components/profile/notify-toggle";
+import { CommentContent, DeleteComment } from "@/components/reader/comment-actions";
 import { IconArrowRight, IconBook, IconChat, IconEye, IconGear, IconStar } from "@/components/ui/icons";
+import { AccountSecurity } from "@/components/profile/account-security";
 import { chapterLabel, formatDate, initials } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -17,11 +14,10 @@ export default async function PerfilPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/entrar");
 
-  const [favs, progress, myComments, prefs] = await Promise.all([
+  const [favs, progress, myComments] = await Promise.all([
     getUserFavorites(user.id),
     getUserProgress(user.id),
     getCommentsByUser(user.id, 10),
-    db.select({ notifyNewChapters: userTable.notifyNewChapters }).from(userTable).where(eq(userTable.id, user.id)).limit(1),
   ]);
 
   const createdAt = user.createdAt ? new Date(user.createdAt) : null;
@@ -75,10 +71,6 @@ export default async function PerfilPage() {
         </div>
       </section>
 
-      <section className="manga-panel profile-note" aria-label="Notificações">
-        <NotifyToggle enabled={prefs[0]?.notifyNewChapters ?? true} />
-      </section>
-
       <section className="section" aria-label="Continuar lendo">
         <div className="section-head">
           <div className="section-head-title">
@@ -119,7 +111,7 @@ export default async function PerfilPage() {
                       </span>
                     </div>
                     <div className="progress-track" aria-hidden="true">
-                      <div className="progress-fill" style={{ width: `${Math.round(frac * 100)}%` }} />
+                      <div className="progress-fill" style={{ transform: `scaleX(${frac})` }} />
                     </div>
                     <div className="progress-foot">
                       <span className="muted">
@@ -207,12 +199,13 @@ export default async function PerfilPage() {
                   </span>
                   <DeleteComment commentId={c.id} />
                 </div>
-                <p className="cm-text">{c.content}</p>
+                <CommentContent commentId={c.id} content={c.content} spoiler={c.spoiler} edited={Boolean(c.editedAt)} canEdit />
               </div>
             ))}
           </div>
         )}
       </section>
+      <AccountSecurity canDelete={user.role !== "admin"} />
     </>
   );
 }

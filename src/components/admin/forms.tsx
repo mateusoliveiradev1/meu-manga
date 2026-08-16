@@ -7,6 +7,7 @@ import {
   createSeriesAction,
   deleteChapterAction,
   deleteSeriesAction,
+  duplicateChapterAction,
   setPagesAction,
   updateChapterAction,
   updateSeriesAction,
@@ -98,7 +99,38 @@ export function SeriesForm({
   const [tags, setTags] = useState(initial?.tags ?? "");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [draftReady, setDraftReady] = useState(Boolean(initial));
   const fileRef = useRef<HTMLInputElement>(null);
+  const draftKey = seriesId ? null : "manga:admin:draft:series";
+
+  useEffect(() => {
+    if (!draftKey) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(draftKey) || "null") as Partial<{
+        title: string; slug: string; synopsis: string; cover: string; status: string; tags: string;
+      }> | null;
+      if (saved) {
+        setTitle(saved.title ?? "");
+        setSlug(saved.slug ?? "");
+        setSynopsis(saved.synopsis ?? "");
+        setCover(saved.cover ?? "");
+        setStatus(saved.status ?? "ongoing");
+        setTags(saved.tags ?? "");
+        setSlugTouched(Boolean(saved.slug));
+      }
+    } catch {
+      localStorage.removeItem(draftKey);
+    }
+    setDraftReady(true);
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!draftKey || !draftReady) return;
+    const timer = window.setTimeout(() => {
+      localStorage.setItem(draftKey, JSON.stringify({ title, slug, synopsis, cover, status, tags }));
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [cover, draftKey, draftReady, slug, status, synopsis, tags, title]);
 
   const selectedGenres = useMemo(() => {
     return new Set(genreSlugsIn(tags).map((slug) => genreBySlug(slug)?.name).filter(Boolean) as string[]);
@@ -184,6 +216,7 @@ export function SeriesForm({
       setSaving(false);
       return;
     }
+    if (draftKey) localStorage.removeItem(draftKey);
     router.push(`/admin/obras/${res.id}/capitulos`);
     router.refresh();
   }
@@ -282,6 +315,7 @@ export function SeriesForm({
         )}
       </div>
       {error && <div className="form-error">{error}</div>}
+      {draftKey && draftReady && <p className="draft-note">Rascunho salvo automaticamente neste aparelho.</p>}
       <div className="row">
         <button type="submit" className="btn" disabled={saving}>
           {saving ? "Salvando..." : "Salvar obra"}
@@ -313,7 +347,36 @@ export function ChapterForm({
   const [publishAt, setPublishAt] = useState(initial?.publishAt ?? "");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [draftReady, setDraftReady] = useState(Boolean(initial));
   const fileRef = useRef<HTMLInputElement>(null);
+  const draftKey = chapterId ? null : `manga:admin:draft:chapter:${seriesId}`;
+
+  useEffect(() => {
+    if (!draftKey) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(draftKey) || "null") as Partial<{
+        number: string; title: string; cover: string; published: boolean; publishAt: string;
+      }> | null;
+      if (saved) {
+        setNumber(saved.number ?? "");
+        setTitle(saved.title ?? "");
+        setCover(saved.cover ?? "");
+        setPublished(Boolean(saved.published));
+        setPublishAt(saved.publishAt ?? "");
+      }
+    } catch {
+      localStorage.removeItem(draftKey);
+    }
+    setDraftReady(true);
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!draftKey || !draftReady) return;
+    const timer = window.setTimeout(() => {
+      localStorage.setItem(draftKey, JSON.stringify({ number, title, cover, published, publishAt }));
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [cover, draftKey, draftReady, number, publishAt, published, title]);
 
   async function onCoverFile(file?: File) {
     if (!file) return;
@@ -362,6 +425,7 @@ export function ChapterForm({
       setSaving(false);
       return;
     }
+    if (draftKey) localStorage.removeItem(draftKey);
     router.push(`/admin/capitulos/${res.id}/editar`);
     router.refresh();
   }
@@ -425,7 +489,7 @@ export function ChapterForm({
             if (e.target.value) setPublished(false);
           }}
         />
-        <span className="hint">Com uma data preenchida, o capítulo fica oculto e é publicado sozinho na hora marcada (e os leitores que favoritaram a obra recebem o aviso por email).</span>
+        <span className="hint">Com uma data preenchida, o capítulo fica oculto e entra no ar automaticamente assim que o horário chegar. A verificação diária do estúdio funciona como garantia mesmo sem visitas.</span>
       </div>
       <label className="row" style={{ marginBottom: "1.2rem", cursor: "pointer", gap: "0.5rem" }}>
         <input
@@ -439,6 +503,7 @@ export function ChapterForm({
         <span>Publicar agora (fica visível para os leitores)</span>
       </label>
       {error && <div className="form-error">{error}</div>}
+      {draftKey && draftReady && <p className="draft-note">Rascunho salvo automaticamente neste aparelho.</p>}
       <button type="submit" className="btn" disabled={saving}>
         {saving ? "Salvando..." : chapterId ? "Salvar capítulo" : "Criar capítulo"}
       </button>
@@ -457,6 +522,7 @@ export function PageManager({ chapterId, initialPages }: { chapterId: number; in
   const [error, setError] = useState("");
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -492,6 +558,15 @@ export function PageManager({ chapterId, initialPages }: { chapterId: number; in
     if (j < 0 || j >= pages.length) return;
     const next = [...pages];
     [next[i], next[j]] = [next[j], next[i]];
+    persist(next);
+  }
+
+  function moveTo(from: number, to: number) {
+    if (from === to || from < 0 || to < 0 || from >= pages.length || to >= pages.length) return;
+    const next = [...pages];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setDragIndex(null);
     persist(next);
   }
 
@@ -581,13 +656,29 @@ export function PageManager({ chapterId, initialPages }: { chapterId: number; in
     <div className="page-manager">
       <div className="pm-head">
         <h3 style={{ margin: 0 }}>Páginas ({pages.length})</h3>
-        <span className="muted">use as setas para ordenar, o botão para apagar</span>
+        <span className="muted">arraste para ordenar ou use as setas</span>
+        {pages.length > 0 && (
+          <button type="button" className="btn small danger" onClick={() => window.confirm("Apagar todas as páginas deste capítulo?") && persist([])} disabled={busy}>
+            <IconTrash size={14} /> Limpar todas
+          </button>
+        )}
       </div>
 
       {pages.length === 0 && <p className="muted">Nenhuma página ainda. Envie arquivos ou cole URLs abaixo.</p>}
 
       {pages.map((p, i) => (
-        <div key={p.id || `${p.src}-${i}`} className="pm-row">
+        <div
+          key={p.id || `${p.src}-${i}`}
+          className={`pm-row ${dragIndex === i ? "is-dragging" : ""}`}
+          draggable={!busy}
+          onDragStart={() => setDragIndex(i)}
+          onDragEnd={() => setDragIndex(null)}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            if (dragIndex != null) moveTo(dragIndex, i);
+          }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="pm-thumb" src={p.src} alt={`Página ${i + 1}`} />
           <div>
@@ -737,6 +828,34 @@ export function DeleteButton({
           {error}
         </span>
       )}
+    </span>
+  );
+}
+
+export function DuplicateChapterButton({ chapterId }: { chapterId: number }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function duplicate() {
+    setBusy(true);
+    setError("");
+    const result = await duplicateChapterAction(chapterId);
+    if (!result.ok || !result.id) {
+      setError(result.ok ? "Não foi possível duplicar o capítulo." : result.error);
+      setBusy(false);
+      return;
+    }
+    router.push(`/admin/capitulos/${result.id}/editar`);
+    router.refresh();
+  }
+
+  return (
+    <span>
+      <button type="button" className="btn small ghost" onClick={duplicate} disabled={busy}>
+        {busy ? "Duplicando…" : "Duplicar"}
+      </button>
+      {error && <span className="form-error">{error}</span>}
     </span>
   );
 }

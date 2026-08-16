@@ -3,8 +3,11 @@ import { PageView } from "@/components/analytics/pageview";
 import { HitCounter } from "@/components/ui/counter";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LogoutButton } from "@/components/auth/forms";
-import { IconGear, IconSearch, IconUser } from "@/components/ui/icons";
+import { IconGear, IconUser } from "@/components/ui/icons";
 import { SiteLogo } from "@/components/ui/logo";
+import { NavLink } from "@/components/ui/nav-link";
+import { SearchBox } from "@/components/catalog/search-box";
+import { PwaControls } from "@/components/pwa/pwa-controls";
 import { getCurrentUser } from "@/features/auth/session";
 import { getLatestPublishedAt, getStats } from "@/features/catalog/queries";
 import { GENRES } from "@/lib/genres";
@@ -25,14 +28,9 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           <Link href="/" className="logo" aria-label={`${SITE_NAME} — início`}>
             <SiteLogo name={SITE_NAME} />
           </Link>
-          <form className="header-search" action="/" method="get" role="search">
-            <input type="search" name="q" placeholder="Buscar obras…" aria-label="Buscar obras" autoComplete="off" />
-            <button type="submit" aria-label="Buscar">
-              <IconSearch size={15} />
-            </button>
-          </form>
+          <SearchBox />
           <nav className="site-nav" aria-label="Navegação principal">
-            <Link href="/">Obras</Link>
+            <NavLink href="/" exact>Obras</NavLink>
             <details className="genre-drop">
               <summary>Gêneros</summary>
               <div className="genre-drop-panel">
@@ -43,16 +41,16 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
                 ))}
               </div>
             </details>
-            <Link href="/sobre">Sobre</Link>
+            <NavLink href="/sobre">Sobre</NavLink>
             {user ? (
               <>
-                <Link href="/perfil" className="nav-btn nav-user">
+                <NavLink href="/perfil" className="nav-btn nav-user">
                   <IconUser size={13} /> {user.name}
-                </Link>
+                </NavLink>
                 {user.role === "admin" && (
-                  <Link href="/admin">
+                  <NavLink href="/admin">
                     <IconGear size={13} /> Painel
-                  </Link>
+                  </NavLink>
                 )}
                 <LogoutButton />
               </>
@@ -110,6 +108,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
               </a>
             )}
             <p className="footer-note">Feito com tinta, papel e muito chá.</p>
+            <PwaControls />
           </div>
         </div>
         <div className="footer-bottom">

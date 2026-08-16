@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommentForm, Reader } from "@/components/reader/reader";
-import { DeleteComment } from "@/components/reader/comment-actions";
+import { CommentContent, DeleteComment, ReportComment } from "@/components/reader/comment-actions";
 import { AuthorName } from "@/components/reader/comment-head";
 import { IconChat } from "@/components/ui/icons";
 import { getCurrentUser } from "@/features/auth/session";
@@ -15,7 +15,9 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ chapterId: string }> }): Promise<Metadata> {
   const { chapterId } = await params;
-  const chapter = await getChapterWithSeries(Number(chapterId));
+  const id = Number(chapterId);
+  if (!Number.isInteger(id) || id <= 0) return { title: "Capítulo não encontrado" };
+  const chapter = await getChapterWithSeries(id);
   if (!chapter || !chapter.published) return { title: "Capítulo não encontrado" };
   const title = `${chapter.series_title} — ${chapterLabel(chapter.number)}${chapter.title ? ` · ${chapter.title}` : ""}`;
   const image = chapter.cover || chapter.series_cover;
@@ -44,9 +46,11 @@ export default async function ReaderPage({
   searchParams: Promise<{ preview?: string }>;
 }) {
   const { chapterId } = await params;
+  const id = Number(chapterId);
+  if (!Number.isInteger(id) || id <= 0) notFound();
   const sp = await searchParams;
   const user = await getCurrentUser();
-  const chapter = await getChapterWithSeries(Number(chapterId));
+  const chapter = await getChapterWithSeries(id);
   const isPreview = sp.preview === "1" && user?.role === "admin";
   if (!chapter || (!chapter.published && !isPreview)) notFound();
 
@@ -103,6 +107,7 @@ export default async function ReaderPage({
         nextHref={next ? `/ler/${next.id}` : null}
         backHref={`/obra/${chapter.series_slug}`}
         initialPage={progress?.page ?? null}
+        authenticated={Boolean(user)}
       />
 
       <div className="comments">
@@ -127,8 +132,9 @@ export default async function ReaderPage({
                   <AuthorName authorId={c.authorId} name={c.authorName} role={c.authorRole} />
                   <span className="cm-date">{formatDate(c.createdAt)}</span>
                   {mine && <DeleteComment commentId={c.id} />}
+                  {user && !mine && <ReportComment commentId={c.id} />}
                 </div>
-                <p className="cm-text">{c.content}</p>
+                <CommentContent commentId={c.id} content={c.content} spoiler={c.spoiler} edited={Boolean(c.editedAt)} canEdit={user?.id === c.userId} />
               </div>
             );
           })

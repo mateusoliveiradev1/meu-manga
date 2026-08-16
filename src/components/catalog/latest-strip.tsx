@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { getLatestChapters } from "@/features/catalog/queries";
 import { chapterLabel, formatDate } from "@/lib/utils";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
 
 type Row = Awaited<ReturnType<typeof getLatestChapters>>[number];
 
@@ -11,9 +12,8 @@ export function LatestStrip({ rows }: { rows: Row[] }) {
       {rows.map((c) => (
         <Link key={c.id} href={`/ler/${c.id}`} className="latest-card" role="listitem">
           <span className="latest-cover">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={c.cover || c.seriesCover || "/samples/cover-farol.svg"} alt="" loading="lazy" />
-            <span className="latest-num mono-num">cap. {chapterLabel(c.number)}</span>
+            <ResponsiveImage src={c.cover || c.seriesCover} alt="" sizes="(max-width: 720px) 38vw, 10rem" />
+            <span className="latest-num mono-num">{chapterLabel(c.number)}</span>
           </span>
           <span className="latest-title">{c.seriesTitle}</span>
           <span className="latest-date">

@@ -1,62 +1,24 @@
-/* Backup portátil do banco: despeja as tabelas do app em um JSON em backups/.
-   Não depende de pg_dump — roda onde o app roda (local, VPS, CI).
-
-     npx tsx scripts/backup.ts            -> backups/backup-<timestamp>.json
-     npx tsx scripts/backup.ts --keep 7   -> também apaga backups com +7 dias
-
-   O Neon tem PITR automático (7 dias); este é o complemento portátil para
-   restaurar em qualquer Postgres. */
 import fs from "node:fs";
 import path from "node:path";
-import { db } from "../src/db/client";
-import * as schema from "../src/db/schema";
+import { backupCounts, createBackupSnapshot, encryptBackup } from "../src/lib/backup";
+import { sql } from "../src/db/client";
 
-const BACKUP_DIR = path.join(process.cwd(), "backups");
-const KEEP = Number(process.argv.find((a) => a.startsWith("--keep"))?.split("=")[1] ?? 0);
-
-const TABLES = [
-  "series",
-  "chapters",
-  "pages",
-  "comments",
-  "seriesRatings",
-  "readingStats",
-  "userFavorites",
-  "userProgress",
-  "pageViews",
-] as const;
+const secret = process.env.BACKUP_ENCRYPTION_KEY;
+if (!secret) throw new Error("Defina BACKUP_ENCRYPTION_KEY antes de criar backups.");
 
 async function main() {
-  fs.mkdirSync(BACKUP_DIR, { recursive: true });
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const out: Record<string, unknown[]> = {};
+  const dir = path.join(process.cwd(), "backups");
+  fs.mkdirSync(dir, { recursive: true });
+  const snapshot = await createBackupSnapshot();
+  const encrypted = encryptBackup(snapshot, secret!);
+  const stamp = snapshot.exportedAt.replace(/[:.]/g, "-");
+  const file = path.join(dir, `backup-${stamp}.mangabackup`);
+  fs.writeFileSync(file, encrypted, { mode: 0o600 });
 
-  for (const name of TABLES) {
-    const t = (schema as Record<string, any>)[name];
-    if (!t) continue;
-    const rows = await db.select().from(t);
-    out[name] = rows;
-    console.log(`  ${name}: ${rows.length} linhas`);
-  }
-
-  const file = path.join(BACKUP_DIR, `backup-${stamp}.json`);
-  fs.writeFileSync(file, JSON.stringify({ exportedAt: new Date().toISOString(), tables: out }, null, 2));
-  console.log(`\nBackup salvo em ${file}`);
-
-  if (KEEP > 0) {
-    const files = fs.readdirSync(BACKUP_DIR).filter((f) => f.startsWith("backup-") && f.endsWith(".json")).sort();
-    const cutoff = Date.now() - KEEP * 24 * 60 * 60 * 1000;
-    for (const f of files) {
-      const p = path.join(BACKUP_DIR, f);
-      if (fs.statSync(p).mtimeMs < cutoff) {
-        fs.unlinkSync(p);
-        console.log(`  removido (antigo): ${f}`);
-      }
-    }
-  }
+  console.log(JSON.stringify({ ok: true, file, bytes: encrypted.length, counts: backupCounts(snapshot) }, null, 2));
 }
 
-main().catch((err) => {
-  console.error("Falha no backup:", err);
+main().catch((error) => {
+  console.error(error);
   process.exit(1);
-});
+}).finally(() => sql.end());

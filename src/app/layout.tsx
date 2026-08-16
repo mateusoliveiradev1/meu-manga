@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Anton, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
 import "./globals.css";
@@ -117,6 +119,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ============================================================ */}
         {children}
         <ServiceWorkerRegister />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

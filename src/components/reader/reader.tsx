@@ -7,6 +7,7 @@ import { authClient } from "@/features/auth/client";
 import { addCommentAction } from "@/features/comments/actions";
 import { saveProgressAction } from "@/features/reader/actions";
 import { IconArrowLeft, IconArrowRight, IconChat, IconBook } from "@/components/ui/icons";
+import { cloudinaryImageUrl, READER_WIDTHS, responsiveImageProps } from "@/lib/images";
 
 type PageSrc = { id: number; src: string };
 
@@ -41,6 +42,7 @@ export function Reader({
   nextHref,
   backHref,
   initialPage,
+  authenticated = false,
 }: {
   pages: PageSrc[];
   chapterId: number;
@@ -52,6 +54,7 @@ export function Reader({
   nextHref: string | null;
   backHref: string;
   initialPage: number | null;
+  authenticated?: boolean;
 }) {
   // scroll is the main reading mode; page is the single-page mode; dupla is the two-page spread
   const [mode, setMode] = useState<"scroll" | "page" | "dupla">("scroll");
@@ -70,7 +73,7 @@ export function Reader({
   const lastFrac = useRef(0);
   const total = pages.length;
   const { data: session } = authClient.useSession();
-  const userId = session?.user?.id;
+  const isAuthenticated = authenticated || Boolean(session?.user?.id);
 
   /* remember the natural size of each page (measured on load) so spreads —
      images wider than tall — can be detected without any DB metadata */
@@ -100,27 +103,27 @@ export function Reader({
 
   const pushProgress = useCallback(
     (page: number) => {
-      if (userId) {
+      if (isAuthenticated) {
         saveProgressAction({ chapterId, page }).catch(() => {});
       } else {
         writeLS(PROGRESS_KEY(chapterId), String(page));
       }
       writeLS(LAST_KEY(seriesId), String(chapterId));
     },
-    [userId, chapterId, seriesId]
+    [isAuthenticated, chapterId, seriesId]
   );
 
   const saveScroll = useCallback(
     (frac: number) => {
       lastFrac.current = frac;
-      if (userId) {
+      if (isAuthenticated) {
         saveProgressAction({ chapterId, page: Math.min(total, Math.round(frac * total)) }).catch(() => {});
       } else {
         writeLS(SCROLL_KEY(chapterId), String(frac));
       }
       writeLS(LAST_KEY(seriesId), String(chapterId));
     },
-    [userId, chapterId, total, seriesId]
+    [isAuthenticated, chapterId, total, seriesId]
   );
 
   /* register the visit once per session + restore reading mode, progress and scroll */
@@ -139,13 +142,13 @@ export function Reader({
     } catch {
       /* ignore */
     }
-    if (!userId) {
+    if (!isAuthenticated) {
       const saved = Number(readLS(PROGRESS_KEY(chapterId)) ?? "0");
       if (Number.isFinite(saved) && saved > 0 && saved < total) setPageIdx(saved);
     }
     // scroll restore: logged-in users come from the server page, guests from localStorage
     let savedFrac = 0;
-    if (userId) {
+    if (isAuthenticated) {
       if (initialPage != null && initialPage > 0 && initialPage < total) savedFrac = initialPage / total;
     } else {
       const scroll = Number(readLS(SCROLL_KEY(chapterId)) ?? "");
@@ -167,7 +170,7 @@ export function Reader({
       return () => clearInterval(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapterId, total, userId]);
+  }, [chapterId, total, isAuthenticated]);
 
   /* page mode: reset image fade-in + zoom on every page turn. Images served from
      cache never fire onLoad in React, so check img.complete as well — otherwise the
@@ -191,7 +194,7 @@ export function Reader({
       const src = pages[idx]?.src;
       if (!src) continue;
       const img = new Image();
-      img.src = src;
+      img.src = cloudinaryImageUrl(src, 1600);
     }
   }, [pageIdx, mode, narrow, pages, total]);
 
@@ -232,35 +235,31 @@ export function Reader({
       clearTimeout(debounce);
       flush(); // the final position on leave (client-side navigation)
     };
-  }, [mode, chapterId, total, userId, saveScroll]);
+  }, [mode, chapterId, total, isAuthenticated, saveScroll]);
 
   const goPrev = useCallback(() => {
     setFinished(false);
     setZoom(false);
     setHalfPos(0);
-    setPageIdx((i) => {
-      const step = mode === "dupla" && !narrow ? 2 : 1;
-      const next = Math.max(0, i - step);
-      pushProgress(next);
-      return next;
-    });
-  }, [mode, narrow, pushProgress]);
+    const step = mode === "dupla" && !narrow ? 2 : 1;
+    const next = Math.max(0, pageIdx - step);
+    setPageIdx(next);
+    pushProgress(next);
+  }, [mode, narrow, pageIdx, pushProgress]);
 
   const goNext = useCallback(() => {
     setZoom(false);
     setHalfPos(0);
-    setPageIdx((i) => {
-      if (i >= total - 1) {
-        setFinished(true);
-        pushProgress(i);
-        return i;
-      }
-      const step = mode === "dupla" && !narrow ? 2 : 1;
-      const next = Math.min(total - 1, i + step);
-      pushProgress(next);
-      return next;
-    });
-  }, [total, mode, narrow, pushProgress]);
+    if (pageIdx >= total - 1) {
+      setFinished(true);
+      pushProgress(pageIdx);
+      return;
+    }
+    const step = mode === "dupla" && !narrow ? 2 : 1;
+    const next = Math.min(total - 1, pageIdx + step);
+    setPageIdx(next);
+    pushProgress(next);
+  }, [total, mode, narrow, pageIdx, pushProgress]);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -418,7 +417,7 @@ export function Reader({
                   <img
                     ref={imgRef}
                     className={`page-img ${imgLoaded ? "loaded" : ""}`}
-                    src={pages[pageIdx].src}
+                    {...responsiveImageProps(pages[pageIdx].src, READER_WIDTHS, "(max-width: 900px) 100vw, 90vw")}
                     alt={`Página ${pageIdx + 1} de ${chapterTitle}`}
                     onLoad={(e) => {
                       measure(pages[pageIdx].id, e.currentTarget);
@@ -492,7 +491,7 @@ export function Reader({
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         className="page-img loaded"
-                        src={p.src}
+                        {...responsiveImageProps(p.src, READER_WIDTHS, "(max-width: 900px) 100vw, 48vw")}
                         alt={`Página ${pageIdx + 1} de ${chapterTitle}`}
                         onLoad={(e) => measure(p.id, e.currentTarget)}
                         onError={() => onImgError(p.id)}
@@ -553,7 +552,7 @@ export function Reader({
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   className="page-img loaded"
-                  src={p.src}
+                  {...responsiveImageProps(p.src, READER_WIDTHS, "100vw")}
                   alt={`Página ${i + 1} de ${chapterTitle}`}
                   onLoad={(e) => measure(p.id, e.currentTarget)}
                   onError={() => onImgError(p.id)}
@@ -639,7 +638,11 @@ export function ResumeNote({
   chapters: { id: number; number: number; title: string }[];
   serverProgress: { chapterId: number; page: number } | null;
 }) {
-  const [note, setNote] = useState<{ id: number; number: number; title: string; page: number | null } | null>(null);
+  const [note, setNote] = useState<{ id: number; number: number; title: string; page: number | null } | null>(() => {
+    if (!serverProgress || serverProgress.page <= 0) return null;
+    const chapter = chapters.find((item) => item.id === serverProgress.chapterId);
+    return chapter ? { ...chapter, page: serverProgress.page } : null;
+  });
 
   useEffect(() => {
     // logged-in users get server progress; guests read localStorage
@@ -679,6 +682,7 @@ export function CommentForm({ chapterId, seriesId }: { chapterId?: number; serie
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
+  const [spoiler, setSpoiler] = useState(false);
 
   if (!session?.user) {
     return (
@@ -698,13 +702,14 @@ export function CommentForm({ chapterId, seriesId }: { chapterId?: number; serie
       return;
     }
     setSending(true);
-    const res = await addCommentAction({ chapterId, seriesId }, { content });
+    const res = await addCommentAction({ chapterId, seriesId }, { content, spoiler });
     if (!res.ok) {
       setError(res.error || "Não foi possível publicar o comentário.");
       setSending(false);
       return;
     }
     setContent("");
+    setSpoiler(false);
     setSending(false);
     router.refresh();
   }
@@ -724,6 +729,10 @@ export function CommentForm({ chapterId, seriesId }: { chapterId?: number; serie
           placeholder="Escreva seu comentário sobre este capítulo..."
         />
       </div>
+      <label className="cm-spoiler-toggle">
+        <input type="checkbox" checked={spoiler} onChange={(event) => setSpoiler(event.target.checked)} />
+        Este comentário contém spoiler
+      </label>
       {error && <div className="form-error">{error}</div>}
       <button type="submit" className="btn" disabled={sending}>
         <IconChat size={16} /> {sending ? "Publicando..." : "Comentar"}

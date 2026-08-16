@@ -5,7 +5,7 @@ import { getChapterWithSeriesAndPages } from "@/features/catalog/queries";
 import { getCommentsByChapter } from "@/features/comments/queries";
 import { CommentForm, ResumeNote } from "@/components/reader/reader";
 import { AuthorName } from "@/components/reader/comment-head";
-import { DeleteComment } from "@/components/reader/comment-actions";
+import { CommentContent, DeleteComment, ReportComment } from "@/components/reader/comment-actions";
 import { getCurrentUser } from "@/features/auth/session";
 import { absoluteUrl } from "@/lib/site";
 import { chapterLabel, formatDate, formatNumber, initials } from "@/lib/utils";
@@ -15,7 +15,9 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const row = await getChapterWithSeriesAndPages(Number(id));
+  const chapterId = Number(id);
+  if (!Number.isInteger(chapterId) || chapterId <= 0) return { title: "Capítulo não encontrado" };
+  const row = await getChapterWithSeriesAndPages(chapterId);
   if (!row) return {};
   const title = `${row.series_title} — ${chapterLabel(row.number)}${row.title ? `: ${row.title}` : ""}`;
   const cover = row.series_cover || row.cover;
@@ -34,7 +36,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function CapituloPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const row = await getChapterWithSeriesAndPages(Number(id));
+  const chapterId = Number(id);
+  if (!Number.isInteger(chapterId) || chapterId <= 0) notFound();
+  const row = await getChapterWithSeriesAndPages(chapterId);
   if (!row) notFound();
   const [user, comments] = await Promise.all([getCurrentUser(), getCommentsByChapter(row.id)]);
 
@@ -106,8 +110,9 @@ export default async function CapituloPage({ params }: { params: Promise<{ id: s
                     <AuthorName authorId={c.authorId} name={c.authorName} role={c.authorRole} />
                     <span className="cm-date">{formatDate(c.createdAt)}</span>
                     {mine && <DeleteComment commentId={c.id} />}
+                    {user && !mine && <ReportComment commentId={c.id} />}
                   </div>
-                  <p className="cm-text">{c.content}</p>
+                  <CommentContent commentId={c.id} content={c.content} spoiler={c.spoiler} edited={Boolean(c.editedAt)} canEdit={user?.id === c.userId} />
                 </div>
               );
             })}

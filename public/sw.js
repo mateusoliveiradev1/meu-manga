@@ -1,15 +1,14 @@
 /* Service worker — Plataforma Dark Premium
    - Navegação: network-first com fallback para cache (sempre mostra o capítulo novo)
    - Imagens (/api/files e R2): cache-first com preenchimento em runtime (leitura offline) */
-const CACHE = "manga-studio-v1";
-const PRECACHE = ["/", "/sobre"];
+const CACHE = "manga-studio-v2";
+const PRECACHE = ["/", "/sobre", "/offline"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
       .then((cache) => cache.addAll(PRECACHE))
-      .then(() => self.skipWaiting())
   );
 });
 
@@ -22,6 +21,10 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 function isImage(url) {
   return url.pathname.startsWith("/api/files/") || /\.(png|jpe?g|webp|gif|avif|svg)$/i.test(url.pathname);
 }
@@ -30,7 +33,8 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin && !url.hostname.includes("r2.dev")) return;
+  const trustedImageHost = url.hostname.includes("r2.dev") || url.hostname === "res.cloudinary.com";
+  if (url.origin !== self.location.origin && !trustedImageHost) return;
 
   // imagens: cache-first (a leitura fica disponível offline após a primeira visita)
   if (isImage(url)) {
@@ -38,7 +42,7 @@ self.addEventListener("fetch", (event) => {
       caches.match(req).then((cached) => {
         if (cached) return cached;
         return fetch(req).then((res) => {
-          if (res.ok) {
+          if (res.ok || res.type === "opaque") {
             const clone = res.clone();
             caches.open(CACHE).then((cache) => cache.put(req, clone));
           }
@@ -59,6 +63,6 @@ self.addEventListener("fetch", (event) => {
         }
         return res;
       })
-      .catch(() => caches.match(req).then((cached) => cached || caches.match("/")))
+      .catch(() => caches.match(req).then((cached) => cached || caches.match("/offline")))
   );
 });

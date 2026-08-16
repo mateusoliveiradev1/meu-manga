@@ -20,6 +20,7 @@ export const chapterInputSchema = z.object({
 
 export const commentInputSchema = z.object({
   content: z.string().trim().min(1, "Escreva um comentário.").max(500, "Comentário longo demais (máx. 500 caracteres)."),
+  spoiler: z.boolean().optional().default(false),
 });
 
 export const commentTargetSchema = z
@@ -30,6 +31,11 @@ export const commentTargetSchema = z
   .refine((t) => (t.chapterId != null) !== (t.seriesId != null), {
     message: "O comentário precisa de um destino: capítulo ou obra.",
   });
+
+export const commentReportSchema = z.object({
+  reason: z.enum(["spam", "abuse", "spoiler", "other"]),
+  details: z.string().trim().max(240, "Detalhes longos demais (máx. 240 caracteres).").default(""),
+});
 
 export const ratingInputSchema = z.object({
   seriesId: z.coerce.number().int().positive(),

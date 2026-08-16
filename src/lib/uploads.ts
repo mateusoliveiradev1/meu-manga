@@ -23,8 +23,8 @@ const NAME_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.
 export function safeUploadName(name: string): { file: string; ext: string } | null {
   if (!NAME_RE.test(name)) return null;
   const ext = name.split(".").pop()!.toLowerCase();
-  const file = path.join(UPLOAD_DIR, name);
+  const file = path.join(/* turbopackIgnore: true */ UPLOAD_DIR, name);
   // belt and suspenders: resolve and confirm it stays inside the upload dir
-  if (!path.resolve(file).startsWith(path.resolve(UPLOAD_DIR) + path.sep)) return null;
+  if (!path.resolve(/* turbopackIgnore: true */ file).startsWith(path.resolve(/* turbopackIgnore: true */ UPLOAD_DIR) + path.sep)) return null;
   return { file, ext };
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DeleteButton } from "@/components/admin/forms";
+import { DeleteButton, DuplicateChapterButton } from "@/components/admin/forms";
 import { IconArrowRight, IconPlus } from "@/components/ui/icons";
 import { requireAdmin } from "@/features/auth/session";
 import { getChaptersBySeries, getSeriesById } from "@/features/catalog/queries";
@@ -64,16 +64,23 @@ export default async function SeriesChaptersPage({ params }: { params: Promise<{
                     </span>
                   </td>
                   <td>
-                    {c.published ? <span className="ok">publicado</span> : <span className="muted">rascunho</span>}
+                    {c.published ? (
+                      <span className="ok">publicado</span>
+                    ) : c.publishAt ? (
+                      <span className="scheduled-status">agendado · {formatDate(c.publishAt)}</span>
+                    ) : (
+                      <span className="muted">rascunho</span>
+                    )}
                   </td>
                   <td className="muted">{formatDate(c.publishedAt)}</td>
-                  <td className="mono-num">—</td>
+                  <td className="mono-num">{c.pageCount}</td>
                   <td>{formatNumber(c.views)}</td>
                   <td>
                     <div className="cell-actions">
                       <Link href={`/admin/capitulos/${c.id}/editar`} className="btn small ghost">
                         Editar <IconArrowRight size={12} />
                       </Link>
+                      <DuplicateChapterButton chapterId={c.id} />
                       <DeleteButton kind="chapter" id={c.id} label={`o capítulo ${chapterLabel(c.number)}`} redirect={`/admin/obras/${series.id}/capitulos`} />
                     </div>
                   </td>

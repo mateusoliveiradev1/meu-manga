@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/features/auth/session";
 import { saveImage } from "@/lib/storage";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const MAX_SIZE = 15 * 1024 * 1024; // 15MB
 
@@ -23,6 +24,10 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user || user.role !== "admin") {
     return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+  const limited = await checkRateLimit({ key: `upload:user:${user.id}:1h`, limit: 120, windowSeconds: 3600 });
+  if (!limited.ok) {
+    return NextResponse.json({ error: "Muitos uploads. Aguarde antes de tentar novamente." }, { status: 429 });
   }
 
   const form = await req.formData();

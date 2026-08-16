@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommentForm, ResumeNote } from "@/components/reader/reader";
-import { DeleteComment } from "@/components/reader/comment-actions";
+import { CommentContent, DeleteComment, ReportComment } from "@/components/reader/comment-actions";
 import { AuthorName } from "@/components/reader/comment-head";
 import { FavoriteButton } from "@/components/favorites/favorite-button";
 import { RatingStars } from "@/components/ratings/rating-stars";
 import { GenreChips } from "@/components/catalog/genre-chips";
 import { StatusBadge } from "@/components/ui/bits";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { IconArrowLeft, IconArrowRight, IconChat } from "@/components/ui/icons";
 import { getCurrentUser } from "@/features/auth/session";
 import { getChaptersBySeries, getPagesByChapter, getProgressForSeries, getRelatedSeries, getSeriesBySlug, getSeriesRating } from "@/features/catalog/queries";
@@ -80,8 +81,7 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
 
       <section className="obra-layout" aria-label={series.title}>
         <div className="obra-cover">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={series.cover || "/samples/cover-farol.svg"} alt={`Capa de ${series.title}`} />
+          <ResponsiveImage src={series.cover} alt={`Capa de ${series.title}`} sizes="(max-width: 720px) 12rem, 18rem" priority />
         </div>
         <div>
           <h1>{series.title}</h1>
@@ -140,8 +140,7 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
                 <div key={c.id} className="chapter-row">
                   <Link href={`/capitulo/${c.id}`} className="ch-main" aria-label={`${chapterLabel(c.number)} — ${c.title || "Sem título"}`}>
                     {c.cover && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img className="ch-cover" src={c.cover} alt="" loading="lazy" />
+                      <ResponsiveImage className="ch-cover" src={c.cover} alt="" sizes="3rem" />
                     )}
                     <span className="ch-num">{chapterLabel(c.number)}</span>
                     <span className="ch-title">{c.title || "Sem título"}</span>
@@ -177,8 +176,7 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
               {related.map((s) => (
                 <article key={s.id} className="series-card">
                   <Link href={`/obra/${s.slug}`} className="cover" aria-label={`Abrir ${s.title}`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={s.cover || "/samples/cover-farol.svg"} alt="" />
+                    <ResponsiveImage src={s.cover} alt="" />
                   </Link>
                   <Link href={`/obra/${s.slug}`} className="card-title">
                     {s.title}
@@ -224,8 +222,9 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
                     <AuthorName authorId={c.authorId} name={c.authorName} role={c.authorRole} />
                     <span className="cm-date">{formatDate(c.createdAt)}</span>
                     {mine && <DeleteComment commentId={c.id} />}
+                    {user && !mine && <ReportComment commentId={c.id} />}
                   </div>
-                  <p className="cm-text">{c.content}</p>
+                  <CommentContent commentId={c.id} content={c.content} spoiler={c.spoiler} edited={Boolean(c.editedAt)} canEdit={user?.id === c.userId} />
                 </div>
               );
             })}

@@ -138,9 +138,42 @@ export const comments = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
+    spoiler: boolean("spoiler").notNull().default(false),
+    editedAt: timestamp("edited_at"),
+    hidden: boolean("hidden").notNull().default(false),
+    moderatedAt: timestamp("moderated_at"),
+    moderatedBy: text("moderated_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (t) => [index("comments_chapter_idx").on(t.chapterId), index("comments_series_idx").on(t.seriesId)]
+  (t) => [
+    index("comments_chapter_idx").on(t.chapterId),
+    index("comments_series_idx").on(t.seriesId),
+    index("comments_hidden_idx").on(t.hidden),
+  ]
+);
+
+export const commentReports = pgTable(
+  "comment_reports",
+  {
+    id: serial("id").primaryKey(),
+    commentId: integer("comment_id")
+      .notNull()
+      .references(() => comments.id, { onDelete: "cascade" }),
+    reporterId: text("reporter_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    reason: text("reason").notNull(),
+    details: text("details").notNull().default(""),
+    status: text("status").notNull().default("open"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at"),
+    resolvedBy: text("resolved_by").references(() => user.id, { onDelete: "set null" }),
+  },
+  (t) => [
+    uniqueIndex("comment_reports_comment_reporter_uniq").on(t.commentId, t.reporterId),
+    index("comment_reports_status_idx").on(t.status),
+    index("comment_reports_comment_idx").on(t.commentId),
+  ]
 );
 
 export const seriesRatings = pgTable(
@@ -231,8 +264,11 @@ export const pageViews = pgTable(
    ------------------------------------------------------------------ */
 
 export const rateLimits = pgTable("rate_limits", {
+  id: text("id").notNull().unique().$defaultFn(() => crypto.randomUUID()),
   key: text("key").primaryKey(),
-  windowStart: bigint("window_start", { mode: "number" }).notNull(),
+  // Better Auth calls this field `lastRequest`. Keep the existing DB column
+  // so the same durable table can serve both auth and application limits.
+  lastRequest: bigint("window_start", { mode: "number" }).notNull(),
   count: integer("count").notNull().default(0),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -241,4 +277,5 @@ export type Series = typeof series.$inferSelect;
 export type Chapter = typeof chapters.$inferSelect;
 export type Page = typeof pages.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
+export type CommentReport = typeof commentReports.$inferSelect;
 export type User = typeof user.$inferSelect;

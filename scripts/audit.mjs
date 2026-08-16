@@ -1,7 +1,7 @@
 /* DOM-level finish audit: h1 count, overflow, broken images, empty content. */
 import { chromium } from "playwright";
 
-const BASE = "http://localhost:3000";
+const BASE = process.env.BASE_URL || "http://localhost:3000";
 
 /* discover the first public series + chapter from the home page, so the audit
    never depends on seed sample data */
@@ -47,13 +47,28 @@ for (const viewport of [
       const broken = [...document.querySelectorAll("img")].filter((i) => i.complete && i.naturalWidth === 0).map((i) => i.src.slice(0, 60));
       const overflow = document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
       const text = document.body.innerText.trim().length;
-      return { h1s, broken, overflow, text };
+      const distortedCovers = [...document.querySelectorAll(
+        ".featured-cover img, .series-card .cover img, .latest-cover img, .home-progress-card img, .profile-fav img, .obra-cover img"
+      )]
+        .map((image) => {
+          const rect = image.getBoundingClientRect();
+          return { src: image.src.slice(0, 60), width: rect.width, height: rect.height };
+        })
+        .filter(({ width, height }) => width > 0 && height > 0 && (width / height < 0.68 || width / height > 0.82));
+      return { h1s, broken, overflow, text, distortedCovers };
     });
     const problems = [];
     if (report.h1s.length !== 1) problems.push(`h1=${report.h1s.length} (${report.h1s.join("|")})`);
     if (report.broken.length) problems.push(`broken imgs: ${report.broken.join(", ")}`);
     if (report.overflow) problems.push("horizontal overflow");
     if (report.text < 40) problems.push("near-empty page");
+    if (report.distortedCovers.length) {
+      problems.push(
+        `cover ratio: ${report.distortedCovers
+          .map((cover) => `${Math.round(cover.width)}x${Math.round(cover.height)}`)
+          .join(", ")}`
+      );
+    }
     if (problems.length) {
       issues++;
       console.log(`ISSUE ${viewport.name}-${name}: ${problems.join("; ")}`);

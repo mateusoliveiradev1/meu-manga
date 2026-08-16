@@ -3,7 +3,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin } from "better-auth/plugins";
 import { db } from "@/db/client";
-import { account, session, user, verification } from "@/db/schema";
+import { account, rateLimits, session, user, verification } from "@/db/schema";
 
 const WEAK_SECRET = "desenvolva-um-segredo-longo";
 
@@ -26,7 +26,7 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
   database: drizzleAdapter(db, {
     provider: "pg",
-    schema: { user, session, account, verification },
+    schema: { user, session, account, verification, rateLimit: rateLimits },
     usePlural: false,
   }),
   emailAndPassword: {
@@ -34,9 +34,13 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     minPasswordLength: 8,
   },
+  user: {
+    deleteUser: { enabled: true },
+  },
   plugins: [admin()],
   rateLimit: {
     enabled: true,
+    storage: "database",
     // base bucket: 30 requests / min / IP for the auth API as a whole
     window: 60,
     max: 30,

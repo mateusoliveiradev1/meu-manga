@@ -16,7 +16,7 @@ related_targets: []
 
 **Proof / content:** a página de manga em papel claro (#f2efe6) flutua sobre o vazio tinta-preta com moldura e sombra profunda; o contador de páginas e a barra de progresso falam amarelo — o único acento do leitor.
 
-**Constraints:** a superfície mais escura do site; exatamente um acento (amarelo); navegação por zonas laterais, teclado e swipe; abaixo da leitura, o livro de visitas do capítulo (comentários exigem login, com avatar de iniciais e data).
+**Constraints:** a superfície mais escura do site; exatamente um acento (amarelo); navegação por zonas laterais, teclado e swipe; abaixo da leitura, o livro de visitas do capítulo (comentários exigem login, com avatar de iniciais e data). Denúncias usam formulário inline discreto e nunca interrompem a leitura com modal.
 
 **Chosen direction:** Tinta e Papel (tankōbon dark) — o leitor é o coração do mundo: a página de papel quente sobre o vazio, como abrir um volume físico à noite.
 

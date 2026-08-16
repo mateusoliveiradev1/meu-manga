@@ -8,7 +8,7 @@ import { notifyNewChapter } from "@/features/notify/email";
  * request público e é um no-op quando não há nada devido). Depois de
  * publicar, notifica os leitores que favoritaram a série — uma vez só.
  */
-export async function publishDueChapters(): Promise<void> {
+export async function publishDueChapters(): Promise<number> {
   const due = await db
     .update(chapters)
     .set({
@@ -18,7 +18,7 @@ export async function publishDueChapters(): Promise<void> {
     .where(and(eq(chapters.published, false), isNotNull(chapters.publishAt), lte(chapters.publishAt, new Date())))
     .returning({ id: chapters.id, seriesId: chapters.seriesId, number: chapters.number, title: chapters.title });
 
-  if (due.length === 0) return;
+  if (due.length === 0) return 0;
   try {
     await notifyNewChapter(due);
   } catch (err) {
@@ -34,4 +34,5 @@ export async function publishDueChapters(): Promise<void> {
         )
       );
   }
+  return due.length;
 }

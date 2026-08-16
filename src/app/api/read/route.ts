@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { chapters, readingStats } from "@/db/schema";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 /**
  * Registers a reading of a chapter: atomically increments its view counter.
@@ -18,6 +19,11 @@ export async function POST(req: NextRequest) {
   }
   if (!chapterId || !Number.isFinite(chapterId)) {
     return NextResponse.json({ error: "chapterId inválido." }, { status: 400 });
+  }
+  const ip = await getClientIp();
+  const limited = await checkRateLimit({ key: `read:ip:${ip}:1h`, limit: 240, windowSeconds: 3600 });
+  if (!limited.ok) {
+    return NextResponse.json({ error: "Muitas leituras registradas." }, { status: 429 });
   }
 
   const [row] = await db

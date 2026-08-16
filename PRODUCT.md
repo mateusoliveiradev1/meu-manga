@@ -34,7 +34,9 @@ O autor gera páginas com IA, entra no painel administrativo protegido por papé
 - Catálogo público (grade de capas, status, contagem de leituras), página de detalhes da obra, leitor full-screen com dois modos (página e rolagem) e navegação por teclado, clique e touch.
 - "Continuar lendo" e favoritos: sincronizados na conta (server) com fallback local para anônimos.
 - Comentários por capítulo, com autorização para apagar (dono ou admin).
-- Painel admin com dashboards de contadores (obras, capítulos, páginas, comentários, leituras).
+- Denúncias de comentários com fila de moderação, ocultação preventiva e restauração pelo autor.
+- Painel admin com dashboards de contadores (obras, capítulos, páginas, comentários, leituras), tráfego e prontidão editorial.
+- Operação de produção com Cloudinary, imagens responsivas, health check, logs estruturados, CI e backup criptografado diário.
 - Idioma do site: português (idioma do usuário).
 - O usuário não quer destacar que as obras são geradas por IA; o site não deve apresentar isso no copy público.
 - Sem material real de mangas ainda: conteúdo de demonstração é sintético e rotulado como tal.

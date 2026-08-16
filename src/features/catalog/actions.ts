@@ -123,6 +123,37 @@ export async function deleteChapterAction(id: number): Promise<ActionResult> {
   return { ok: true };
 }
 
+export async function duplicateChapterAction(id: number): Promise<ActionResult> {
+  await requireAdmin();
+  const [source] = await db.select().from(chapters).where(eq(chapters.id, id)).limit(1);
+  if (!source) return { ok: false, error: "Capítulo não encontrado." };
+
+  const siblings = await db.select({ number: chapters.number }).from(chapters).where(eq(chapters.seriesId, source.seriesId));
+  const nextNumber = Math.max(0, ...siblings.map((chapter) => chapter.number)) + 1;
+  const sourcePages = await db.select().from(pages).where(eq(pages.chapterId, source.id)).orderBy(pages.position);
+
+  const duplicatedId = await db.transaction(async (tx) => {
+    const [copy] = await tx
+      .insert(chapters)
+      .values({
+        seriesId: source.seriesId,
+        number: nextNumber,
+        title: source.title ? `${source.title} (cópia)` : "Cópia",
+        cover: source.cover,
+        published: false,
+        publishedAt: null,
+        publishAt: null,
+        notified: false,
+      })
+      .returning({ id: chapters.id });
+    if (sourcePages.length > 0) {
+      await tx.insert(pages).values(sourcePages.map((page) => ({ chapterId: copy.id, position: page.position, src: page.src })));
+    }
+    return copy.id;
+  });
+  return { ok: true, id: duplicatedId };
+}
+
 export async function setPagesAction(chapterId: number, input: unknown): Promise<ActionResult> {
   await requireAdmin();
   const parsed = pagesInputSchema.safeParse(input);

@@ -17,6 +17,7 @@ import {
 import { LatestStrip } from "@/components/catalog/latest-strip";
 import { genreBySlug } from "@/lib/genres";
 import { chapterLabel, formatDate, formatNumber } from "@/lib/utils";
+import { ResponsiveImage } from "@/components/ui/responsive-image";
 
 export const dynamic = "force-dynamic";
 
@@ -25,12 +26,13 @@ const SITE_NAME = process.env.SITE_NAME || "Meu Mangá";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; genero?: string; sort?: string }>;
+  searchParams: Promise<{ q?: string; genero?: string; sort?: string; pagina?: string }>;
 }) {
   const sp = await searchParams;
   const q = sp.q ?? "";
   const genero = sp.genero ?? "";
   const sort: SeriesSort = sp.sort === "reads" || sp.sort === "rated" ? sp.sort : "recent";
+  const requestedPage = Math.max(1, Number.parseInt(sp.pagina ?? "1", 10) || 1);
   const genre = genreBySlug(genero);
   const [user, series, lastPublished, latestChapters] = await Promise.all([
     getCurrentUser(),
@@ -39,7 +41,7 @@ export default async function HomePage({
     getLatestChapters(8),
   ]);
 
-  const featured = series[0];
+  const featured = series.find((work) => work.chapterCount > 0) ?? series[0];
   const featuredChapters = featured ? await getChaptersBySeries(featured.id, true) : [];
 
   const [favIds, progress] = user
@@ -56,8 +58,7 @@ export default async function HomePage({
             <span className="featured-obi mono-num" aria-hidden="true">
               em destaque
             </span>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={featured.cover || "/samples/cover-farol.svg"} alt="" />
+            <ResponsiveImage src={featured.cover} alt="" sizes="(max-width: 720px) 11rem, 16rem" priority />
           </Link>
           <div className="featured-body">
             <h1>{featured.title}</h1>
@@ -87,7 +88,7 @@ export default async function HomePage({
             <GenreChips tags={featured.tags} />
             {featuredChapters.length > 1 && (
               <Link className="featured-new" href={`/ler/${featuredChapters[featuredChapters.length - 1].id}`}>
-                <IconStar size={12} /> Capítulo {chapterLabel(featuredChapters[featuredChapters.length - 1].number)} novo
+                <IconStar size={12} /> {chapterLabel(featuredChapters[featuredChapters.length - 1].number)} novo
               </Link>
             )}
             <div className="featured-actions">
@@ -138,8 +139,7 @@ export default async function HomePage({
               return (
                 <Link key={p.chapterId} href={`/ler/${p.chapterId}`} className="home-progress-card">
                   {p.seriesCover ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.seriesCover} alt="" loading="lazy" />
+                    <ResponsiveImage src={p.seriesCover} alt="" sizes="4rem" />
                   ) : (
                     <span className="placeholder" aria-hidden="true" />
                   )}
@@ -199,8 +199,7 @@ export default async function HomePage({
           <div className="row" style={{ gap: "0.9rem", flexWrap: "wrap" }}>
             {favSeries.map((s) => (
               <Link key={s.id} href={`/obra/${s.slug}`} className="profile-fav">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={s.cover || "/samples/cover-farol.svg"} alt="" />
+                <ResponsiveImage src={s.cover} alt="" sizes="6.5rem" />
                 <span>{s.title}</span>
               </Link>
             ))}
@@ -225,7 +224,7 @@ export default async function HomePage({
           </span>
         </div>
 
-        <SeriesGrid series={series} q={q.trim() || undefined} genre={genre?.slug} sort={sort} />
+        <SeriesGrid series={series} q={q.trim() || undefined} genre={genre?.slug} sort={sort} page={requestedPage} />
       </section>
 
     </>
