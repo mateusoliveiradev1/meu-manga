@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Anton, JetBrains_Mono } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
-import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const anton = Anton({
@@ -19,25 +19,56 @@ const jetbrains = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
   title: {
-    default: `${SITE_NAME} — mangás para ler`,
-    template: `%s · ${SITE_NAME}`,
+    default: `${SITE_NAME} | ${SITE_TAGLINE}`,
+    template: `%s | ${SITE_NAME}`,
   },
-  description: "Mangás publicados direto do estúdio: leia os capítulos, acompanhe suas obras favoritas e deixe seu comentário.",
+  description: SITE_DESCRIPTION,
+  keywords: ["mangá online", "ler mangá", "mangás brasileiros", "quadrinhos online", "capítulos de mangá"],
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  category: "entretenimento",
+  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: "pt_BR",
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — mangás para ler`,
-    description: "Mangás publicados direto do estúdio: leia os capítulos, acompanhe suas obras favoritas e deixe seu comentário.",
+    title: `${SITE_NAME} | ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
     url: "/",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — mangás para ler`,
-    description: "Mangás publicados direto do estúdio: leia os capítulos, acompanhe suas obras favoritas e deixe seu comentário.",
+    title: `${SITE_NAME} | ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
   },
-  robots: { index: true, follow: true },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: SITE_DESCRIPTION,
+  inLanguage: "pt-BR",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${SITE_URL}/?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -52,6 +83,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd).replace(/</g, "\\u003c") }}
+        />
         {/* ============================================================
           MEU MANGÁ — direction contract (brief-pinned, code-first)
 

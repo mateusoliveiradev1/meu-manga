@@ -12,5 +12,8 @@ backups
 shots
 uploads
 public/uploads
+public/logo.png
+public/logo-ink.png
+public/logo-preview.html
 
 *.tsbuildinfo
