@@ -3,7 +3,7 @@ import { PageView } from "@/components/analytics/pageview";
 import { HitCounter } from "@/components/ui/counter";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LogoutButton } from "@/components/auth/forms";
-import { IconBell, IconGear, IconUser, IconUsers } from "@/components/ui/icons";
+import { IconBell, IconGear, IconTrophy, IconUser, IconUsers } from "@/components/ui/icons";
 import { SiteLogo } from "@/components/ui/logo";
 import { NavLink } from "@/components/ui/nav-link";
 import { SearchBox } from "@/components/catalog/search-box";
@@ -35,6 +35,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           <nav className="site-nav" aria-label="Navegação principal">
             <NavLink href="/" exact>Início</NavLink>
             <NavLink href="/obras">Obras</NavLink>
+            <NavLink href="/ranking"><IconTrophy size={13} /> Ranking</NavLink>
             <NavLink href="/comunidade"><IconUsers size={13} /> Comunidade</NavLink>
             <details className="genre-drop">
               <summary>Gêneros</summary>
@@ -48,30 +49,30 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
               </div>
             </details>
             <NavLink href="/sobre">Sobre</NavLink>
+          </nav>
+          <div className="site-account">
             {user ? (
               <>
                 <NavLink href="/notificacoes" className="notification-nav-link" aria-label={unreadNotifications ? `${unreadNotifications} notificações não lidas` : "Notificações"}>
-                  <IconBell size={14} /> {unreadNotifications > 0 && <span className="notification-nav-count">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}
+                  <IconBell size={15} /> {unreadNotifications > 0 && <span className="notification-nav-count">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}
                 </NavLink>
-                <NavLink href="/perfil" className="nav-btn nav-user">
-                  <IconUser size={13} /> {user.name}
-                </NavLink>
-                {user.role === "admin" && (
-                  <NavLink href="/admin">
-                    <IconGear size={13} /> Painel
-                  </NavLink>
-                )}
-                <LogoutButton />
+                <details className="account-drop">
+                  <summary><IconUser size={14} /><span>{user.name}</span></summary>
+                  <div className="account-drop-panel">
+                    <Link href="/perfil"><IconUser size={15} /> Meu perfil</Link>
+                    <Link href="/notificacoes"><IconBell size={15} /> Notificações {unreadNotifications > 0 && <span className="notification-nav-count">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</Link>
+                    {user.role === "admin" && <Link href="/admin"><IconGear size={15} /> Painel do autor</Link>}
+                    <LogoutButton className="account-menu-logout" />
+                  </div>
+                </details>
               </>
             ) : (
               <>
-                <Link href="/entrar">Entrar</Link>
-                <Link href="/cadastro" className="btn small">
-                  Criar conta
-                </Link>
+                <Link className="account-login" href="/entrar">Entrar</Link>
+                <Link href="/cadastro" className="btn small">Criar conta</Link>
               </>
             )}
-          </nav>
+          </div>
           <ThemeToggle />
           <MobileNav user={user ? { name: user.name, role: user.role ?? "user", unreadNotifications } : null} />
         </div>
@@ -94,6 +95,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             <h3>Navegação</h3>
             <Link href="/">Início</Link>
             <Link href="/obras">Explorar obras</Link>
+            <Link href="/ranking">Ranking</Link>
             <Link href="/capitulos">Capítulos</Link>
             <Link href="/generos">Gêneros</Link>
             <Link href="/comunidade">Comunidade</Link>

@@ -5,6 +5,7 @@
 
 import fs from "node:fs";
 import { chromium } from "playwright";
+import postgres from "postgres";
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 // the admin email must match the SERVER's ADMIN_EMAIL (read from .env by default,
@@ -21,6 +22,8 @@ const EMAIL = process.env.ADMIN_TEST ? ADMIN_EMAIL : `teste-${Date.now()}@exempl
 const PASSWORD = "senha-teste-123";
 const NAME = "Teste E2E";
 const TITLE = `Obra E2E ${Date.now()}`;
+let createdPrimaryAccount = false;
+let readerEmail = null;
 
 const results = [];
 function check(label, ok, extra = "") {
@@ -47,6 +50,10 @@ try {
   const dropLinks = await page.locator(".genre-drop-panel a").count();
   check("dropdown lista os gêneros", dropLinks >= 10, `${dropLinks} gêneros`);
   check("link Sobre no header", (await page.locator('.site-nav a[href="/sobre"]').count()) === 1);
+  check("link Ranking no header", (await page.locator('.site-nav a[href="/ranking"]').count()) === 1);
+
+  await page.goto(BASE + "/ranking", { waitUntil: "load" });
+  check("ranking público carrega", (await page.locator("h1").textContent())?.includes("histórias que estão puxando a fila"));
 
   // 1c. catalog and genre discovery
   await page.goto(BASE + "/obras", { waitUntil: "load" });
@@ -107,6 +114,7 @@ try {
     .waitForURL(BASE + "/", { timeout: 8000 })
     .then(() => true)
     .catch(() => false);
+  createdPrimaryAccount = regRedirected;
   if (!regRedirected) {
     const signupError = await page.locator(".form-error").textContent().catch(() => "");
     if (signupError) console.log("Erro no cadastro:", signupError);
@@ -254,9 +262,12 @@ try {
   const seriesCmt = await page.content();
   check("comentário na obra salvo e visível", seriesCmt.includes(seriesMsg) && seriesCmt.includes("Comentários da obra"));
 
-  // 12. profile: name in header links to /perfil; sections show the data
-  const nameHref = await page.evaluate(() => document.querySelector("a.nav-user")?.getAttribute("href") ?? null);
-  check("nome no header leva ao perfil", nameHref === "/perfil");
+  // 12. profile: the account menu keeps the reader name and a direct /perfil link
+  const accountMenu = await page.evaluate(() => ({
+    name: document.querySelector(".account-drop summary")?.textContent?.trim() ?? "",
+    profileHref: document.querySelector('.account-drop-panel a[href="/perfil"]')?.getAttribute("href") ?? null,
+  }));
+  check("menu do leitor leva ao perfil", accountMenu.name.includes(NAME) && accountMenu.profileHref === "/perfil");
   await page.goto(BASE + "/perfil", { waitUntil: "load" });
   await page.waitForSelector(".profile-card", { timeout: 10000 });
   const profileHtml = await page.content();
@@ -268,7 +279,7 @@ try {
   if (isAdminEmail && TEST_CHAPTER_ID && chapterCommentText) {
     const readerContext = await browser.newContext();
     const readerPage = await readerContext.newPage();
-    const readerEmail = `teste-leitor-${Date.now()}@exemplo.com`;
+    readerEmail = `teste-leitor-${Date.now()}@exemplo.com`;
     await readerPage.goto(BASE + "/cadastro", { waitUntil: "load" });
     await readerPage.fill("#reg-name", "Leitor Moderacao");
     await readerPage.fill("#reg-email", readerEmail);
@@ -327,6 +338,27 @@ try {
 }
 
 await browser.close();
+
+if (BASE.startsWith("http://localhost") || BASE.startsWith("http://127.0.0.1")) {
+  const rawDatabaseUrl = process.env.DATABASE_URL || readEnvValue("DATABASE_URL");
+  const databaseUrl = rawDatabaseUrl?.replace(/^['"]|['"]$/g, "");
+  if (databaseUrl) {
+    try {
+      const cleanupDb = postgres(databaseUrl, { max: 1 });
+      const removedWorks = await cleanupDb`delete from series where title = ${TITLE} returning id`;
+      const cleanupEmails = [readerEmail, createdPrimaryAccount ? EMAIL : null].filter(Boolean);
+      const removedUsers = cleanupEmails.length
+        ? await cleanupDb`delete from "user" where email in ${cleanupDb(cleanupEmails)} returning id`
+        : [];
+      await cleanupDb.end();
+      check("dados temporários do E2E removidos", removedWorks.length <= 1 && removedUsers.length === cleanupEmails.length, `${removedWorks.length} obra(s), ${removedUsers.length} conta(s)`);
+    } catch (cleanupError) {
+      check("dados temporários do E2E removidos", false, cleanupError.message);
+    }
+  } else {
+    check("dados temporários do E2E removidos", false, "DATABASE_URL indisponível");
+  }
+}
 
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} passaram`);

@@ -13,7 +13,7 @@ async function discoverPaths(page) {
       .filter((h) => h.startsWith("/obra/"))
   );
   const slug = hrefs[0]?.replace("/obra/", "") ?? "";
-  if (!slug) return [["home", "/"], ["community", "/comunidade"], ["login", "/entrar"], ["register", "/cadastro"]];
+  if (!slug) return [["home", "/"], ["ranking", "/ranking"], ["community", "/comunidade"], ["login", "/entrar"], ["register", "/cadastro"]];
   await page.goto(BASE + "/obra/" + slug, { waitUntil: "load" });
   const chapterHref = await page.evaluate(() => {
     const a = document.querySelector("a[href^='/ler/']");
@@ -21,6 +21,7 @@ async function discoverPaths(page) {
   });
   return [
     ["home", "/"],
+    ["ranking", "/ranking"],
     ["community", "/comunidade"],
     ["obra", "/obra/" + slug],
     ["reader", chapterHref ?? "/"],
@@ -49,7 +50,7 @@ for (const viewport of [
       const overflow = document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
       const text = document.body.innerText.trim().length;
       const distortedCovers = [...document.querySelectorAll(
-        ".featured-cover img, .series-card .cover img, .latest-cover img, .home-progress-card img, .profile-fav img, .obra-cover img"
+        ".featured-cover img, .series-card .cover img, .latest-cover img, .home-progress-card img, .profile-fav img, .obra-cover img, .ranking-cover img, .ranking-leader-cover img"
       )]
         .map((image) => {
           const rect = image.getBoundingClientRect();

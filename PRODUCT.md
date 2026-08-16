@@ -58,7 +58,7 @@ Há conteúdo de demonstração publicado e as obras definitivas estão em desen
 3. **Contas a serviço da leitura.** Login existe para sincronizar favoritas e progresso e para comentar — nada de paywall ou fricção.
 4. **Dados e código do autor.** Postgres próprio + estrutura modular; sem lock-in de terceiros no código ou nos dados.
 5. **Leitura mobile-first.** A maioria dos leitores estará no celular.
-6. **Comunidade sem ruído.** Relações e reações ajudam a conversa; não existe ranking de popularidade nem mecânica agressiva de engajamento.
+6. **Comunidade sem ruído.** Relações e reações ajudam a conversa; pessoas não são ranqueadas. O ranking pertence às obras e usa leituras e avaliações reais, sem mecânica agressiva de engajamento.
 
 ## Accessibility & Inclusion
 

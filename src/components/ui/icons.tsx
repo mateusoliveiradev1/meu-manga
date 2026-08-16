@@ -25,6 +25,15 @@ export function IconStar(props: IconProps) {
   );
 }
 
+export function IconTrophy(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M8 4h8v4a4 4 0 0 1-8 0V4z" />
+      <path d="M8 6H4v1a4 4 0 0 0 4 4M16 6h4v1a4 4 0 0 1-4 4M12 12v5M8 21h8M9 17h6" />
+    </svg>
+  );
+}
+
 export function IconBook(props: IconProps) {
   return (
     <svg {...base(props)}>

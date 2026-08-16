@@ -15,6 +15,11 @@ export type SeriesWithStats = typeof series.$inferSelect & {
 
 export type SeriesFilters = { q?: string; genreName?: string; sort?: "recent" | "reads" | "rated" };
 
+export type RankedSeries = SeriesWithStats & {
+  recentViews: number;
+  ratingCount: number;
+};
+
 export async function getSeriesList(userId?: string, filters: SeriesFilters = {}): Promise<SeriesWithStats[]> {
   await publishDueChapters();
   const { q, genreName, sort = "recent" } = filters;
@@ -61,6 +66,50 @@ export async function getSeriesList(userId?: string, filters: SeriesFilters = {}
   if (sort === "reads") list.sort((a, b) => b.views - a.views);
   else if (sort === "rated") list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
   return list;
+}
+
+export async function getSeriesRankings(limit = 10) {
+  const since = new Date();
+  since.setHours(0, 0, 0, 0);
+  since.setDate(since.getDate() - 29);
+
+  const [works, recentRows, ratingRows] = await Promise.all([
+    getSeriesList(),
+    db
+      .select({
+        seriesId: chapters.seriesId,
+        views: sql<number>`coalesce(sum(${readingStats.views}), 0)::int`,
+      })
+      .from(readingStats)
+      .innerJoin(chapters, eq(chapters.id, readingStats.chapterId))
+      .where(gte(readingStats.day, since))
+      .groupBy(chapters.seriesId),
+    db
+      .select({ seriesId: seriesRatings.seriesId, count: count() })
+      .from(seriesRatings)
+      .groupBy(seriesRatings.seriesId),
+  ]);
+
+  const recentMap = new Map(recentRows.map((row) => [row.seriesId, Number(row.views)]));
+  const ratingCountMap = new Map(ratingRows.map((row) => [row.seriesId, Number(row.count)]));
+  const ranked: RankedSeries[] = works.filter((work) => work.chapterCount > 0).map((work) => ({
+    ...work,
+    recentViews: recentMap.get(work.id) ?? 0,
+    ratingCount: ratingCountMap.get(work.id) ?? 0,
+  }));
+
+  return {
+    trending: [...ranked]
+      .sort((a, b) => b.recentViews - a.recentViews || b.views - a.views || a.title.localeCompare(b.title, "pt-BR"))
+      .slice(0, limit),
+    mostRead: [...ranked]
+      .sort((a, b) => b.views - a.views || b.recentViews - a.recentViews || a.title.localeCompare(b.title, "pt-BR"))
+      .slice(0, limit),
+    bestRated: ranked
+      .filter((work) => work.rating != null && work.ratingCount > 0)
+      .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || b.ratingCount - a.ratingCount || b.views - a.views)
+      .slice(0, limit),
+  };
 }
 
 export async function getSeriesBySlug(slug: string, userId?: string) {
@@ -320,7 +369,13 @@ export async function getCommunityMembers(limit = 8, viewerId?: string) {
         : sql<boolean>`false`,
     })
     .from(member)
-    .where(or(eq(member.role, "admin"), sql`${member.bio} <> ''`, sql`exists(select 1 from ${comments} c where c.user_id = ${member.id} and c.hidden = false)`))
+    .where(and(
+      sql`${member.email} not like 'teste-%@exemplo.com'`,
+      sql`${member.email} not like 'codex-e2e-%@exemplo.com'`,
+      sql`lower(${member.name}) <> 'teste e2e'`,
+      sql`${member.name} <> 'Leitor Moderacao'`,
+      or(eq(member.role, "admin"), sql`${member.bio} <> ''`, sql`exists(select 1 from ${comments} c where c.user_id = ${member.id} and c.hidden = false)`),
+    ))
     .orderBy(desc(sql`(select count(*) from ${userFollows} f where f.following_id = ${member.id}) + (select count(*) from ${comments} c where c.user_id = ${member.id} and c.hidden = false)`))
     .limit(limit);
   return rows.map((row) => ({ ...row, comments: Number(row.comments), followers: Number(row.followers), likes: Number(row.likes), followedByViewer: Boolean(row.followedByViewer) }));

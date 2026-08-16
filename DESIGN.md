@@ -188,6 +188,8 @@ Cantos de plataforma: cards e painéis 12px, banner 16px, botões 10px, campos 1
 - **Busca no header:** campo pill compacto com ícone de lupa à direita; no mobile vive dentro do menu em bottom sheet. O envio faz GET para `/obras?q=…`, preservando uma única rota canônica de descoberta.
 - **Gêneros:** dropdown `details/summary` (sem JS) com a lista canônica de gêneros (`src/lib/genres.ts`), cada um linkando para `/genero/[slug]`; obras marcam gêneros por chips no painel e tags livres continuam válidas.
 - **Comunidade:** item de primeiro nível no desktop e no menu mobile. Usuários autenticados recebem sino com contador não lido; perfis e nomes de comentários são sempre clicáveis.
+- **Ranking:** item de primeiro nível para descoberta de obras; separa movimento recente, leituras acumuladas e avaliações, sem ranquear pessoas.
+- **Conta no desktop:** sino permanece visível e perfil, notificações, painel e saída ficam agrupados em um menu de conta. A navegação nunca quebra em duas linhas; abaixo do breakpoint compacto, todo o mapa migra para o menu mobile.
 - **Marca:** painel amarelo com o slash inclinado (o "volume" da marca); inclina -6° no hover.
 - **Barra do leitor:** compacta, escura; Ampliar · Página · Rolagem.
 

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/auth/forms";
 import { SearchBox } from "@/components/catalog/search-box";
-import { IconBell, IconBook, IconClose, IconCompass, IconGear, IconHome, IconMenu, IconUser, IconUsers } from "@/components/ui/icons";
+import { IconBell, IconBook, IconClose, IconCompass, IconGear, IconHome, IconMenu, IconTrophy, IconUser, IconUsers } from "@/components/ui/icons";
 
 type MobileUser = { name: string; role: string; unreadNotifications: number } | null;
 
@@ -72,6 +72,7 @@ export function MobileNav({ user }: { user: MobileUser }) {
             <nav className="mobile-menu-links">
               <Link href="/"><IconHome size={18} /> Início</Link>
               <Link href="/obras"><IconCompass size={18} /> Explorar obras</Link>
+              <Link href="/ranking"><IconTrophy size={18} /> Ranking de obras</Link>
               <Link href="/capitulos"><IconBook size={18} /> Capítulos recentes</Link>
               <Link href="/comunidade"><IconUsers size={18} /> Comunidade</Link>
               <Link href="/generos">Todos os gêneros</Link>
