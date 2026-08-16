@@ -92,6 +92,13 @@
       "when": 1786913936481,
       "tag": "0012_rich_kronos",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1786922803098,
+      "tag": "0013_wise_firestar",
+      "breakpoints": true
     }
   ]
 }

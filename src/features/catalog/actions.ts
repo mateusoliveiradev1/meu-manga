@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { count, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { chapters, pages, series } from "@/db/schema";
 import { requireAdmin } from "@/features/auth/session";
@@ -172,6 +172,47 @@ export async function setPagesAction(chapterId: number, input: unknown): Promise
       await tx.insert(pages).values(srcs.map((src, i) => ({ chapterId, position: i + 1, src })));
     }
   });
+  return { ok: true };
+}
+
+export async function bulkPublishChaptersAction(input: unknown): Promise<ActionResult> {
+  await requireAdmin();
+  if (!Array.isArray(input)) return { ok: false, error: "Selecione capítulos para publicar." };
+  const ids = [...new Set(input.map(Number).filter((id) => Number.isInteger(id) && id > 0))].slice(0, 50);
+  if (!ids.length) return { ok: false, error: "Selecione pelo menos um capítulo." };
+
+  const selected = await db
+    .select({
+      id: chapters.id,
+      seriesId: chapters.seriesId,
+      number: chapters.number,
+      title: chapters.title,
+      published: chapters.published,
+      pageCount: count(pages.id),
+    })
+    .from(chapters)
+    .leftJoin(pages, eq(pages.chapterId, chapters.id))
+    .where(inArray(chapters.id, ids))
+    .groupBy(chapters.id);
+  if (selected.length !== ids.length) return { ok: false, error: "Um dos capítulos selecionados não existe mais." };
+  const empty = selected.filter((chapter) => chapter.pageCount === 0);
+  if (empty.length) {
+    return { ok: false, error: `Adicione páginas antes de publicar: ${empty.map((chapter) => `cap. ${chapter.number}`).join(", ")}.` };
+  }
+
+  const unpublished = selected.filter((chapter) => !chapter.published);
+  if (!unpublished.length) return { ok: false, error: "Os capítulos selecionados já estão publicados." };
+  await db.transaction(async (tx) => {
+    await tx
+      .update(chapters)
+      .set({ published: true, publishedAt: new Date(), publishAt: null })
+      .where(inArray(chapters.id, unpublished.map((chapter) => chapter.id)));
+    await tx
+      .update(series)
+      .set({ updatedAt: new Date() })
+      .where(inArray(series.id, [...new Set(unpublished.map((chapter) => chapter.seriesId))]));
+  });
+  await dispatchChapterNotifications(unpublished.map(({ id, seriesId, number, title }) => ({ id, seriesId, number, title })));
   return { ok: true };
 }
 

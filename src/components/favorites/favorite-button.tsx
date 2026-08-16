@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/features/auth/client";
 import { toggleFavoriteAction } from "@/features/favorites/actions";
 import { IconStar } from "@/components/ui/icons";
+import { trackProductEvent } from "@/lib/analytics-client";
 
 const GUEST_FAVS_KEY = "manga-guest-favs";
 
@@ -46,11 +47,13 @@ export function FavoriteButton({ seriesId, title, initial }: { seriesId: number;
         /* ignore */
       }
       setFav(next.includes(seriesId));
+      if (next.includes(seriesId)) trackProductEvent("favorite", { seriesId });
       return;
     }
     const res = await toggleFavoriteAction(seriesId);
     if (res.ok) {
       setFav(res.favorite);
+      if (res.favorite) trackProductEvent("favorite", { seriesId });
       router.refresh();
     }
   }

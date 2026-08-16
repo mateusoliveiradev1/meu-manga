@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteCommentAction, moderateCommentAction, reportCommentAction, updateCommentAction } from "@/features/comments/actions";
 import { IconEdit, IconEye, IconEyeOff, IconFlag, IconTrash } from "@/components/ui/icons";
+import { SpoilerText } from "@/components/community/spoiler-text";
 
 export function DeleteComment({ commentId }: { commentId: number }) {
   const router = useRouter();
@@ -77,7 +78,7 @@ export function CommentContent({
           Spoiler oculto — tocar para revelar
         </button>
       ) : (
-        <p className="cm-text">{content}</p>
+        <SpoilerText content={content} />
       )}
       <div className="cm-content-meta">
         {edited && <span>editado</span>}

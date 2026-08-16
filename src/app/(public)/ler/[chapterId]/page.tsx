@@ -7,6 +7,7 @@ import { IconChat } from "@/components/ui/icons";
 import { getCurrentUser } from "@/features/auth/session";
 import { getChapterProgress, getChapterWithSeries, getPagesByChapter, getPrevNextChapter } from "@/features/catalog/queries";
 import { getCommentsByChapter } from "@/features/comments/queries";
+import { getChapterBookmarks, getReaderPreferences } from "@/features/reader/queries";
 import { absoluteUrl } from "@/lib/site";
 import { chapterLabel, formatDate } from "@/lib/utils";
 
@@ -42,7 +43,7 @@ export default async function ReaderPage({
   searchParams,
 }: {
   params: Promise<{ chapterId: string }>;
-  searchParams: Promise<{ preview?: string }>;
+  searchParams: Promise<{ preview?: string; pagina?: string }>;
 }) {
   const { chapterId } = await params;
   const id = Number(chapterId);
@@ -53,12 +54,16 @@ export default async function ReaderPage({
   const isPreview = sp.preview === "1" && user?.role === "admin";
   if (!chapter || (!chapter.published && !isPreview)) notFound();
 
-  const [pages, comments, { prev, next }] = await Promise.all([
+  const [pages, comments, { prev, next }, progress, preferences, bookmarks] = await Promise.all([
     getPagesByChapter(chapter.id),
     getCommentsByChapter(chapter.id, 100, user?.id),
     getPrevNextChapter(chapter.series_id, chapter.number),
+    user ? getChapterProgress(chapter.id, user.id) : Promise.resolve(null),
+    user ? getReaderPreferences(user.id) : Promise.resolve({ readingMode: "scroll" as const, preloadPages: true }),
+    user ? getChapterBookmarks(user.id, chapter.id) : Promise.resolve([]),
   ]);
-  const progress = user ? await getChapterProgress(chapter.id, user.id) : null;
+  const requestedPage = Math.max(0, Number(sp.pagina ?? 1) - 1);
+  const initialPage = Number.isFinite(requestedPage) && sp.pagina ? requestedPage : progress?.page ?? null;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -105,8 +110,11 @@ export default async function ReaderPage({
         prevHref={prev ? `/ler/${prev.id}` : null}
         nextHref={next ? `/ler/${next.id}` : null}
         backHref={`/obra/${chapter.series_slug}`}
-        initialPage={progress?.page ?? null}
+        initialPage={initialPage}
         authenticated={Boolean(user)}
+        initialMode={preferences.readingMode}
+        initialPreload={preferences.preloadPages}
+        initialBookmarks={bookmarks.map(({ id, page, note }) => ({ id, page, note }))}
       />
 
       <div className="comments" id="comentarios">

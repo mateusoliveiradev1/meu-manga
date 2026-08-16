@@ -226,6 +226,40 @@ try {
     await page.goto(BASE + "/obra/" + SERIES_SLUG, { waitUntil: "load" });
     const obraHtml = await page.content();
     check("capítulo publicado visível na obra", obraHtml.includes("Capítulo de teste"));
+
+    // 8b. personal library: status persists and surfaces in the dedicated route
+    await page.selectOption(".library-control select", "reading");
+    await page.waitForTimeout(900);
+    await page.goto(BASE + "/biblioteca", { waitUntil: "load" });
+    check("biblioteca pessoal guarda estado de leitura", (await page.content()).includes(TITLE) && (await page.content()).includes("Lendo"));
+    await page.goto(BASE + "/para-voce", { waitUntil: "load" });
+    check("recomendações pessoais carregam", (await page.locator("h1").innerText()).includes("Escolhas que partem da sua estante"));
+
+    // 8c. club: a post stays attached to the work
+    await page.goto(BASE + "/clube/" + SERIES_SLUG, { waitUntil: "load" });
+    const clubTitle = `Teoria E2E ${Date.now()}`;
+    await page.click('.club-type-tabs button:has-text("Teoria")');
+    await page.fill("#club-title", clubTitle);
+    await page.fill("#club-content", "A página final deixa uma pista que muda a leitura do capítulo.");
+    await page.click('button:has-text("Publicar teoria")');
+    await page.waitForTimeout(1200);
+    check("clube publica teoria vinculada à obra", (await page.content()).includes(clubTitle));
+    await page.click('.club-type-tabs button:has-text("Enquete")');
+    await page.fill("#club-title", "Qual pista importa mais?");
+    await page.fill("#poll-option-0", "O relógio");
+    await page.fill("#poll-option-1", "A última fala");
+    await page.click('button:has-text("Abrir enquete")');
+    await page.waitForTimeout(1200);
+    const poll = page.locator(".club-poll").first();
+    await poll.locator('button:has-text("O relógio")').click();
+    await page.waitForTimeout(700);
+    check("enquete do clube recebe voto", (await poll.textContent()).includes("1 voto"));
+
+    // 8d. author tools: calendar, automated QA and analytics are protected and render
+    await page.goto(BASE + "/admin/calendario", { waitUntil: "load" });
+    check("calendário editorial e publicação em lote carregam", (await page.content()).includes("Fluxo editorial") && (await page.content()).includes("Rascunhos prontos"));
+    await page.goto(BASE + "/admin/analytics", { waitUntil: "load" });
+    check("analytics de produto carrega", (await page.locator("#analytics-title").innerText()).includes("Da capa ao fim do capítulo"));
   }
 
   // 9. comment on the created chapter (logged in)
@@ -255,6 +289,14 @@ try {
   await page.waitForSelector(".page-nav.next", { timeout: 10000 });
   await page.click(".page-nav.next");
   await page.waitForTimeout(1500);
+
+  // 11a. private page bookmark and note
+  await page.click(".reader-tools > summary");
+  await page.fill(".reader-note textarea", "Voltar nesta pista depois.");
+  await page.click('.reader-tools-panel button:has-text("Marcar esta página")');
+  await page.waitForTimeout(900);
+  check("marcador privado salvo no leitor", (await page.locator(".reader-tools-panel").textContent()).includes("Página marcada"));
+
   await page.goto(BASE + "/obra/" + SERIES_SLUG, { waitUntil: "load" });
   // the progress save is a fire-and-forget fetch — with a slow DB it can land
   // a beat after the page renders, so retry before declaring failure

@@ -5,10 +5,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/features/auth/client";
 import { addCommentAction } from "@/features/comments/actions";
-import { saveProgressAction } from "@/features/reader/actions";
+import { recordReadingVisitAction, saveProgressAction, saveReaderPreferencesAction } from "@/features/reader/actions";
 import { IconArrowLeft, IconArrowRight, IconChat, IconBook } from "@/components/ui/icons";
+import { ReaderTools } from "@/components/reader/reader-tools";
 import { cloudinaryImageUrl, READER_WIDTHS, responsiveImageProps } from "@/lib/images";
 import { authPath } from "@/lib/navigation";
+import { trackProductEvent } from "@/lib/analytics-client";
 
 type PageSrc = { id: number; src: string };
 
@@ -44,6 +46,9 @@ export function Reader({
   backHref,
   initialPage,
   authenticated = false,
+  initialMode = "scroll",
+  initialPreload = true,
+  initialBookmarks = [],
 }: {
   pages: PageSrc[];
   chapterId: number;
@@ -56,10 +61,14 @@ export function Reader({
   backHref: string;
   initialPage: number | null;
   authenticated?: boolean;
+  initialMode?: "scroll" | "page" | "dupla";
+  initialPreload?: boolean;
+  initialBookmarks?: { id: number; page: number; note: string }[];
 }) {
   // scroll is the main reading mode; page is the single-page mode; dupla is the two-page spread
-  const [mode, setMode] = useState<"scroll" | "page" | "dupla">("scroll");
-  const [pageIdx, setPageIdx] = useState(0);
+  const [mode, setMode] = useState<"scroll" | "page" | "dupla">(initialMode);
+  const [pageIdx, setPageIdx] = useState(() => Math.max(0, Math.min(pages.length - 1, initialPage ?? 0)));
+  const [preloadPages, setPreloadPages] = useState(initialPreload);
   const [finished, setFinished] = useState(false);
   const [scrollFrac, setScrollFrac] = useState(0);
   const [zoom, setZoom] = useState(false);
@@ -72,9 +81,30 @@ export function Reader({
   const frameRef = useRef<HTMLDivElement>(null);
   const sizesRef = useRef<Map<number, { w: number; h: number }>>(new Map());
   const lastFrac = useRef(0);
+  const currentPageRef = useRef(pageIdx);
+  const completionTracked = useRef(false);
   const total = pages.length;
   const { data: session } = authClient.useSession();
   const isAuthenticated = authenticated || Boolean(session?.user?.id);
+  const router = useRouter();
+
+  useEffect(() => {
+    trackProductEvent("chapter_start", { seriesId, chapterId, page: pageIdx });
+    return () => trackProductEvent("chapter_exit", { seriesId, chapterId, page: currentPageRef.current });
+    // a leitura começa uma vez por montagem do capítulo
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapterId]);
+
+  useEffect(() => {
+    currentPageRef.current = mode === "scroll" ? Math.min(total - 1, Math.round(scrollFrac * Math.max(0, total - 1))) : pageIdx;
+  }, [mode, pageIdx, scrollFrac, total]);
+
+  useEffect(() => {
+    if (!finished || completionTracked.current) return;
+    completionTracked.current = true;
+    trackProductEvent("chapter_complete", { seriesId, chapterId, page: Math.max(0, total - 1) });
+    if (isAuthenticated) saveProgressAction({ chapterId, page: Math.max(0, total - 1), completed: true }).catch(() => {});
+  }, [chapterId, finished, isAuthenticated, seriesId, total]);
 
   /* remember the natural size of each page (measured on load) so spreads —
      images wider than tall — can be detected without any DB metadata */
@@ -105,20 +135,20 @@ export function Reader({
   const pushProgress = useCallback(
     (page: number) => {
       if (isAuthenticated) {
-        saveProgressAction({ chapterId, page }).catch(() => {});
+        saveProgressAction({ chapterId, page, completed: page >= total - 1 }).catch(() => {});
       } else {
         writeLS(PROGRESS_KEY(chapterId), String(page));
       }
       writeLS(LAST_KEY(seriesId), String(chapterId));
     },
-    [isAuthenticated, chapterId, seriesId]
+    [isAuthenticated, chapterId, seriesId, total]
   );
 
   const saveScroll = useCallback(
     (frac: number) => {
       lastFrac.current = frac;
       if (isAuthenticated) {
-        saveProgressAction({ chapterId, page: Math.min(total, Math.round(frac * total)) }).catch(() => {});
+        saveProgressAction({ chapterId, page: Math.min(Math.max(0, total - 1), Math.round(frac * total)), completed: frac > 0.985 }).catch(() => {});
       } else {
         writeLS(SCROLL_KEY(chapterId), String(frac));
       }
@@ -130,7 +160,7 @@ export function Reader({
   /* register the visit once per session + restore reading mode, progress and scroll */
   useEffect(() => {
     const savedMode = readLS(MODE_KEY);
-    if (savedMode === "page" || savedMode === "dupla") setMode(savedMode); // scroll is the default; page/dupla opt out
+    if (!isAuthenticated && (savedMode === "page" || savedMode === "dupla")) setMode(savedMode); // contas usam a preferência sincronizada
     try {
       if (!window.sessionStorage.getItem(`manga-read:${chapterId}`)) {
         window.sessionStorage.setItem(`manga-read:${chapterId}`, "1");
@@ -139,6 +169,7 @@ export function Reader({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ chapterId }),
         }).catch(() => {});
+        if (isAuthenticated) recordReadingVisitAction(chapterId, seriesId).catch(() => {});
       }
     } catch {
       /* ignore */
@@ -171,7 +202,7 @@ export function Reader({
       return () => clearInterval(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapterId, total, isAuthenticated]);
+  }, [chapterId, total, isAuthenticated, seriesId]);
 
   /* page mode: reset image fade-in + zoom on every page turn. Images served from
      cache never fire onLoad in React, so check img.complete as well — otherwise the
@@ -188,7 +219,7 @@ export function Reader({
   /* preload the next pages so page turns are instant: warm the browser cache for
      the next 2 images in page/dupla modes (scroll mode already renders all imgs) */
   useEffect(() => {
-    if (mode === "scroll" || total === 0) return;
+    if (!preloadPages || mode === "scroll" || total === 0) return;
     const step = mode === "dupla" && !narrow ? 2 : 1;
     for (let i = 1; i <= 2; i++) {
       const idx = pageIdx + i * step;
@@ -197,7 +228,8 @@ export function Reader({
       const img = new Image();
       img.src = cloudinaryImageUrl(src, 1600);
     }
-  }, [pageIdx, mode, narrow, pages, total]);
+    if (nextHref) router.prefetch(nextHref);
+  }, [pageIdx, mode, narrow, pages, total, preloadPages, nextHref, router]);
 
   /* scroll mode: track the NATIVE document scroll (manga-site style), throttled */
   useEffect(() => {
@@ -308,6 +340,12 @@ export function Reader({
     setMode(m);
     setHalfPos(0);
     writeLS(MODE_KEY, m);
+    if (isAuthenticated) saveReaderPreferencesAction({ readingMode: m, preloadPages }).catch(() => {});
+  };
+
+  const choosePreload = (value: boolean) => {
+    setPreloadPages(value);
+    if (isAuthenticated) saveReaderPreferencesAction({ readingMode: mode, preloadPages: value }).catch(() => {});
   };
 
   /* spread tap zones: right half advances to the right half, then to the next
@@ -382,6 +420,7 @@ export function Reader({
             </button>
           ))}
         </div>
+        <ReaderTools chapterId={chapterId} currentPage={mode === "scroll" ? Math.min(total - 1, Math.round(scrollFrac * Math.max(0, total - 1))) : pageIdx} total={total} authenticated={isAuthenticated} initialBookmarks={initialBookmarks} preloadPages={preloadPages} onPreloadChange={choosePreload} />
       </div>
       <div className="reader-progress" role="progressbar" aria-label="Progresso do capítulo" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
         <div className="bar" style={{ transform: `scaleX(${Math.max(0.02, progress)})` }} />

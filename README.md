@@ -9,6 +9,10 @@ Para leitores:
 - Catálogo paginado, busca com sugestões, gêneros, favoritos, avaliações e perfis públicos.
 - Leitor mobile-first nos modos rolagem, página e dupla.
 - Progresso sincronizado para contas e fallback local para visitantes.
+- Estante pessoal com fila, estados de leitura, coleções, histórico e recomendações transparentes.
+- Marcações por página, notas privadas e preferências do leitor sincronizadas entre dispositivos.
+- Clubes por obra com discussões, teorias, enquetes, reações e proteção de spoilers.
+- Notificações no navegador para capítulos e interações sociais, configuráveis no perfil.
 - Comentários editáveis por obra e capítulo, com proteção de spoilers e denúncia de spam ou abuso.
 - PWA instalável com modo offline, RSS, sitemap, Open Graph e dados estruturados.
 - Troca de senha, encerramento de outras sessões e exclusão segura da conta.
@@ -18,8 +22,11 @@ Para o autor:
 - Painel protegido por papel de administrador.
 - CRUD de obras, capítulos e páginas; upload, URLs, importação ZIP/CBZ e duplicação de capítulos.
 - Rascunhos com salvamento local, pré-visualização e publicação agendada.
+- Calendário editorial, checklist automático de páginas e publicação segura em lote.
+- Prévia simultânea em desktop e celular antes de publicar.
 - Reordenação de páginas por arrastar, setas acessíveis e limpeza em lote.
 - Leituras por dia, páginas mais acessadas, leitores ativos, conclusões e prontidão editorial.
+- Funil obra → capítulo → conclusão, abandono por página, retenção e comparação de lançamentos.
 - Fila de moderação com ocultação e restauração de comentários.
 
 Operação:
@@ -58,6 +65,8 @@ Obrigatórias em produção:
 | `CLOUDINARY_API_SECRET` | Segredo do Cloudinary |
 | `CRON_SECRET` | Proteção dos endpoints `/api/cron/backup` e `/api/cron/publish` |
 | `BACKUP_ENCRYPTION_KEY` | Criptografia AES-256-GCM dos backups |
+
+O push no navegador usa `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT`. Sem elas, somente essa opção fica desativada; o restante do produto continua funcionando.
 
 Consulte [.env.example](./.env.example) para R2, suporte e recursos opcionais. Resend permanece opcional e não é necessário para o funcionamento atual.
 

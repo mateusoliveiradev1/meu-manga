@@ -45,6 +45,18 @@ export const ratingInputSchema = z.object({
 export const progressInputSchema = z.object({
   chapterId: z.coerce.number().int().positive(),
   page: z.coerce.number().int().min(0),
+  completed: z.boolean().optional().default(false),
+});
+
+export const bookmarkInputSchema = z.object({
+  chapterId: z.coerce.number().int().positive(),
+  page: z.coerce.number().int().min(0),
+  note: z.string().trim().max(500, "A anotação pode ter até 500 caracteres.").default(""),
+});
+
+export const readerPreferencesSchema = z.object({
+  readingMode: z.enum(["scroll", "page", "dupla"]),
+  preloadPages: z.boolean(),
 });
 
 export const pagesInputSchema = z.object({

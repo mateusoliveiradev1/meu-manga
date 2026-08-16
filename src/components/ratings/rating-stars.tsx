@@ -7,6 +7,7 @@ import { authClient } from "@/features/auth/client";
 import { setRatingAction } from "@/features/ratings/actions";
 import { IconStar } from "@/components/ui/icons";
 import { authPath } from "@/lib/navigation";
+import { trackProductEvent } from "@/lib/analytics-client";
 
 export function RatingStars({
   seriesId,
@@ -37,6 +38,7 @@ export function RatingStars({
     setBusy(false);
     if (res.ok) {
       setValue(v);
+      trackProductEvent("rating", { seriesId });
       router.refresh();
     }
   }

@@ -3,6 +3,7 @@ import "server-only";
 import { inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { notifications, series, userFavorites } from "@/db/schema";
+import { sendPushToUsers } from "@/features/push/send";
 
 type NotificationInput = {
   userId: string;
@@ -23,6 +24,7 @@ export async function createNotification(input: NotificationInput) {
     message: (input.message ?? "").slice(0, 280),
     href: input.href.slice(0, 500),
   });
+  await sendPushToUsers([input.userId], { title: input.title, body: input.message ?? "Abra a estante para ver.", href: input.href, tag: `manga-${input.type}` }, input.type === "chapter" ? "chapter" : "social").catch((error) => console.error("[push] notificação social", error));
 }
 
 export async function notifyFavoritersOfChapters(
@@ -47,5 +49,16 @@ export async function notifyFavoritersOfChapters(
         href: `/ler/${chapter.id}`,
       }))
   );
-  if (values.length) await db.insert(notifications).values(values);
+  if (values.length) {
+    await db.insert(notifications).values(values);
+    await Promise.allSettled(rows.map((chapter) => {
+      const recipients = favorites.filter((favorite) => favorite.seriesId === chapter.seriesId).map((favorite) => favorite.userId);
+      return sendPushToUsers(recipients, {
+        title: `Novo capítulo de ${titleById.get(chapter.seriesId) ?? "uma obra da sua estante"}`,
+        body: `Capítulo ${chapter.number}${chapter.title ? ` — ${chapter.title}` : ""} já está disponível.`,
+        href: `/ler/${chapter.id}`,
+        tag: `chapter-${chapter.id}`,
+      }, "chapter");
+    }));
+  }
 }

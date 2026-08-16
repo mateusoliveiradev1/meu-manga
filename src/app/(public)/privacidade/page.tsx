@@ -22,16 +22,26 @@ export default function PrivacidadePage() {
           <h2>O que coletamos</h2>
           <p>
             Apenas o essencial para o site funcionar: nome, e-mail e senha (criptografada) na criação de conta, além do
-            progresso de leitura, favoritas e comentários que você mesmo cria. Nada de rastreadores de terceiros, pixels
-            ou coleta de dados para publicidade.
+            progresso e histórico de leitura, favoritas, listas, marcações, notas privadas e publicações que você mesmo
+            cria. Nada de rastreadores de terceiros, pixels ou coleta de dados para publicidade.
           </p>
         </section>
 
         <section className="legal-block">
-          <h2>Contadores</h2>
+          <h2>Métricas do próprio site</h2>
           <p>
-            Guardamos contadores anônimos de leituras e de visitas por página, sem associá-los à sua identidade. Servem
-            apenas para o estúdio saber o que está sendo lido e melhorar o site.
+            Guardamos eventos de uso como abrir uma obra, começar ou concluir um capítulo e favoritar. Eles servem apenas
+            para o estúdio entender a experiência de leitura e melhorar as histórias e o produto. Não vendemos esses dados
+            nem os enviamos para plataformas de anúncios.
+          </p>
+        </section>
+
+        <section className="legal-block">
+          <h2>Notificações no navegador</h2>
+          <p>
+            Se você ativar os avisos, guardamos o identificador técnico fornecido pelo navegador para entregar novos
+            capítulos e interações da comunidade. A permissão é opcional e pode ser revogada no perfil ou nas configurações
+            do próprio navegador.
           </p>
         </section>
 
@@ -52,10 +62,10 @@ export default function PrivacidadePage() {
         </section>
 
         <section className="legal-block">
-          <h2>Conteúdo dos comentários</h2>
+          <h2>Conteúdo da comunidade</h2>
           <p>
-            Seja gentil. Comentários com spam, assédio ou conteúdo impróprio podem ser removidos pela moderação, e contas
-            que insistirem podem ser suspensas.
+            Seja gentil. Comentários, teorias e enquetes com spam, assédio ou conteúdo impróprio podem ser removidos pela
+            moderação, e contas que insistirem podem ser suspensas. Marque spoilers para preservar a leitura de outras pessoas.
           </p>
         </section>
 

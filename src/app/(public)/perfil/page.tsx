@@ -7,6 +7,8 @@ import { CommentContent, DeleteComment } from "@/components/reader/comment-actio
 import { IconArrowRight, IconBell, IconBook, IconChat, IconEye, IconGear, IconHeart, IconStar, IconUsers } from "@/components/ui/icons";
 import { AccountSecurity } from "@/components/profile/account-security";
 import { ProfileSettings } from "@/components/profile/profile-settings";
+import { PushSettings } from "@/components/pwa/push-settings";
+import { getPushState } from "@/features/push/queries";
 import { chapterLabel, formatDate, initials } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -15,12 +17,13 @@ export default async function PerfilPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/entrar?next=%2Fperfil&motivo=perfil");
 
-  const [favs, progress, myComments, settings, communityProfile] = await Promise.all([
+  const [favs, progress, myComments, settings, communityProfile, pushState] = await Promise.all([
     getUserLibrary(user.id),
     getUserProgress(user.id),
     getCommentsByUser(user.id, 10),
     getProfileSettings(user.id),
     getPublicProfile(user.id),
+    getPushState(user.id),
   ]);
 
   const createdAt = user.createdAt ? new Date(user.createdAt) : null;
@@ -213,6 +216,7 @@ export default async function PerfilPage() {
         )}
       </section>
       {settings && <ProfileSettings initial={{ name: settings.name, image: settings.image ?? "", bio: settings.bio, favoriteGenre: settings.favoriteGenre, favoritesPublic: settings.favoritesPublic, commentsPublic: settings.commentsPublic }} />}
+      <PushSettings configured={pushState.configured} initialCount={pushState.subscriptionCount} initialChapters={pushState.notifyNewChapters} initialSocial={pushState.notifySocial} />
       <AccountSecurity canDelete={user.role !== "admin"} />
     </>
   );

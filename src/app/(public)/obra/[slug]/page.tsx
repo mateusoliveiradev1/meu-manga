@@ -5,15 +5,19 @@ import { CommentForm, ResumeNote } from "@/components/reader/reader";
 import { CommentThread } from "@/components/community/comment-thread";
 import { ShareButton } from "@/components/community/share-button";
 import { FavoriteButton } from "@/components/favorites/favorite-button";
+import { LibraryControls } from "@/components/library/library-controls";
 import { RatingStars } from "@/components/ratings/rating-stars";
+import { ProductEvent } from "@/components/analytics/product-event";
 import { GenreChips } from "@/components/catalog/genre-chips";
 import { StatusBadge } from "@/components/ui/bits";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
-import { IconArrowLeft, IconArrowRight, IconChat } from "@/components/ui/icons";
+import { IconArrowLeft, IconArrowRight, IconChat, IconUsers } from "@/components/ui/icons";
 import { getCurrentUser } from "@/features/auth/session";
 import { getChaptersBySeries, getPagesByChapter, getProgressForSeries, getRelatedSeries, getSeriesBySlug, getSeriesRating } from "@/features/catalog/queries";
 import { getCommentsBySeries } from "@/features/comments/queries";
+import { getSeriesLibraryState } from "@/features/library/queries";
 import { genresIn } from "@/lib/genres";
+import { authPath } from "@/lib/navigation";
 import { absoluteUrl } from "@/lib/site";
 import { chapterLabel, formatDate, formatNumber } from "@/lib/utils";
 
@@ -50,11 +54,12 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
   const series = await getSeriesBySlug(slug, user?.id);
   if (!series) notFound();
 
-  const [chapters, seriesComments, rating, related] = await Promise.all([
+  const [chapters, seriesComments, rating, related, libraryState] = await Promise.all([
     getChaptersBySeries(series.id, true),
     getCommentsBySeries(series.id, 100, user?.id),
     getSeriesRating(series.id, user?.id),
     getRelatedSeries(series.id, series.tags),
+    user ? getSeriesLibraryState(user.id, series.id) : Promise.resolve({ status: null, collections: [] }),
   ]);
   const firstChapter = chapters[0];
   const serverProgress = user ? await getProgressForSeries(user.id, series.id) : null;
@@ -72,6 +77,7 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
 
   return (
     <>
+      <ProductEvent event="work_view" seriesId={series.id} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="mt-2">
         <Link href="/obras" className="btn ghost small">
@@ -108,7 +114,9 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
               <span className="muted">O primeiro capítulo está em produção.</span>
             )}
             <FavoriteButton seriesId={series.id} title={series.title} initial={series.favorite} />
+            <LibraryControls seriesId={series.id} initialStatus={libraryState.status} collections={libraryState.collections} loginHref={user ? undefined : authPath("entrar", `/obra/${series.slug}`, "biblioteca")} />
             <ShareButton title={series.title} text={series.synopsis.slice(0, 120)} />
+            <Link className="btn ghost" href={`/clube/${series.slug}`}><IconUsers size={16} /> Clube da obra</Link>
           </div>
           <RatingStars seriesId={series.id} avg={rating.avg} count={rating.count} mine={rating.mine} />
         </div>

@@ -28,8 +28,11 @@ export const user = pgTable("user", {
   banReason: text("ban_reason"),
   banExpires: timestamp("ban_expires"),
   notifyNewChapters: boolean("notify_new_chapters").notNull().default(true),
+  notifySocial: boolean("notify_social").notNull().default(true),
   favoritesPublic: boolean("favorites_public").notNull().default(true),
   commentsPublic: boolean("comments_public").notNull().default(true),
+  readingMode: text("reading_mode").notNull().default("scroll"),
+  preloadPages: boolean("preload_pages").notNull().default(true),
   bio: text("bio").notNull().default(""),
   favoriteGenre: text("favorite_genre").notNull().default(""),
   createdAt: timestamp("created_at").notNull(),
@@ -287,6 +290,50 @@ export const userFavorites = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.seriesId] })]
 );
 
+export const libraryEntries = pgTable(
+  "library_entries",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    seriesId: integer("series_id")
+      .notNull()
+      .references(() => series.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("want"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.seriesId] }), index("library_entries_status_idx").on(t.userId, t.status)]
+);
+
+export const userCollections = pgTable(
+  "user_collections",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("user_collections_user_idx").on(t.userId)]
+);
+
+export const collectionItems = pgTable(
+  "collection_items",
+  {
+    collectionId: integer("collection_id")
+      .notNull()
+      .references(() => userCollections.id, { onDelete: "cascade" }),
+    seriesId: integer("series_id")
+      .notNull()
+      .references(() => series.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.collectionId, t.seriesId] }), index("collection_items_series_idx").on(t.seriesId)]
+);
+
 export const userProgress = pgTable(
   "user_progress",
   {
@@ -300,6 +347,147 @@ export const userProgress = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.chapterId] })]
+);
+
+export const readingHistory = pgTable(
+  "reading_history",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    chapterId: integer("chapter_id")
+      .notNull()
+      .references(() => chapters.id, { onDelete: "cascade" }),
+    visits: integer("visits").notNull().default(1),
+    firstReadAt: timestamp("first_read_at").notNull().defaultNow(),
+    lastReadAt: timestamp("last_read_at").notNull().defaultNow(),
+    completedAt: timestamp("completed_at"),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.chapterId] }), index("reading_history_recent_idx").on(t.userId, t.lastReadAt)]
+);
+
+export const readingBookmarks = pgTable(
+  "reading_bookmarks",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    chapterId: integer("chapter_id")
+      .notNull()
+      .references(() => chapters.id, { onDelete: "cascade" }),
+    page: integer("page").notNull(),
+    note: text("note").notNull().default(""),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("reading_bookmarks_page_uniq").on(t.userId, t.chapterId, t.page),
+    index("reading_bookmarks_user_idx").on(t.userId, t.updatedAt),
+  ]
+);
+
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("push_subscriptions_user_idx").on(t.userId)]
+);
+
+export const clubPosts = pgTable(
+  "club_posts",
+  {
+    id: serial("id").primaryKey(),
+    seriesId: integer("series_id")
+      .notNull()
+      .references(() => series.id, { onDelete: "cascade" }),
+    chapterId: integer("chapter_id").references(() => chapters.id, { onDelete: "set null" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    type: text("type").notNull().default("discussion"),
+    title: text("title").notNull(),
+    content: text("content").notNull().default(""),
+    spoiler: boolean("spoiler").notNull().default(false),
+    hidden: boolean("hidden").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("club_posts_series_idx").on(t.seriesId, t.createdAt), index("club_posts_user_idx").on(t.userId)]
+);
+
+export const pollOptions = pgTable(
+  "poll_options",
+  {
+    id: serial("id").primaryKey(),
+    postId: integer("post_id")
+      .notNull()
+      .references(() => clubPosts.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    position: integer("position").notNull(),
+  },
+  (t) => [index("poll_options_post_idx").on(t.postId)]
+);
+
+export const pollVotes = pgTable(
+  "poll_votes",
+  {
+    postId: integer("post_id")
+      .notNull()
+      .references(() => clubPosts.id, { onDelete: "cascade" }),
+    optionId: integer("option_id")
+      .notNull()
+      .references(() => pollOptions.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.postId, t.userId] }), index("poll_votes_option_idx").on(t.optionId)]
+);
+
+export const postReactions = pgTable(
+  "post_reactions",
+  {
+    postId: integer("post_id")
+      .notNull()
+      .references(() => clubPosts.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    reaction: text("reaction").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.postId, t.userId] }), index("post_reactions_post_idx").on(t.postId)]
+);
+
+export const analyticsEvents = pgTable(
+  "analytics_events",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    sessionId: text("session_id").notNull(),
+    event: text("event").notNull(),
+    path: text("path").notNull().default(""),
+    seriesId: integer("series_id").references(() => series.id, { onDelete: "cascade" }),
+    chapterId: integer("chapter_id").references(() => chapters.id, { onDelete: "cascade" }),
+    page: integer("page"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("analytics_events_created_idx").on(t.createdAt),
+    index("analytics_events_event_idx").on(t.event, t.createdAt),
+    index("analytics_events_chapter_idx").on(t.chapterId, t.createdAt),
+  ]
 );
 
 /* ------------------------------------------------------------------
@@ -340,3 +528,6 @@ export type Comment = typeof comments.$inferSelect;
 export type CommentReport = typeof commentReports.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type User = typeof user.$inferSelect;
+export type LibraryEntry = typeof libraryEntries.$inferSelect;
+export type ReadingBookmark = typeof readingBookmarks.$inferSelect;
+export type ClubPost = typeof clubPosts.$inferSelect;

@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/auth/forms";
 import { SearchBox } from "@/components/catalog/search-box";
-import { IconBell, IconBook, IconClose, IconCompass, IconGear, IconHome, IconMenu, IconTrophy, IconUser, IconUsers } from "@/components/ui/icons";
+import { IconBell, IconBook, IconBookmark, IconClose, IconCompass, IconGear, IconHome, IconMenu, IconSpark, IconTrophy, IconUser, IconUsers } from "@/components/ui/icons";
 
 type MobileUser = { name: string; role: string; unreadNotifications: number } | null;
 
@@ -78,6 +78,8 @@ export function MobileNav({ user }: { user: MobileUser }) {
           {user ? (
             <>
               <Link href="/perfil"><IconUser size={18} /> {user.name}</Link>
+              <Link href="/biblioteca"><IconBookmark size={18} /> Minha biblioteca</Link>
+              <Link href="/para-voce"><IconSpark size={18} /> Para você</Link>
               <Link href="/notificacoes"><IconBell size={18} /> Notificações {user.unreadNotifications > 0 && <span className="notification-nav-count">{user.unreadNotifications}</span>}</Link>
               {user.role === "admin" && <Link href="/admin"><IconGear size={18} /> Painel do autor</Link>}
               <LogoutButton />

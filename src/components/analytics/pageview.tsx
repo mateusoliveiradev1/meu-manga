@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { trackProductEvent } from "@/lib/analytics-client";
 
 /**
  * Fires one lightweight pageview per (path, session) — deduped via
@@ -21,6 +22,7 @@ export function PageView() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: pathname }),
       }).catch(() => {});
+      trackProductEvent("page_view", { path: pathname });
     } catch {
       /* ignore */
     }

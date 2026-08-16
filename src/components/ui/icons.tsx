@@ -283,3 +283,31 @@ export function IconUsers(props: IconProps) {
 export function IconCheckAll(props: IconProps) {
   return <svg {...base(props)}><path d="m2 12 4 4L16 6" /><path d="m10 15 2 2 10-10" /></svg>;
 }
+
+export function IconBookmark(props: IconProps) {
+  return <svg {...base(props)}><path d="M6 3h12v18l-6-4-6 4V3z" /></svg>;
+}
+
+export function IconList(props: IconProps) {
+  return <svg {...base(props)}><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4 6h.01M4 12h.01M4 18h.01" /></svg>;
+}
+
+export function IconSpark(props: IconProps) {
+  return <svg {...base(props)}><path d="m12 3 1.4 4.6L18 9l-4.6 1.4L12 15l-1.4-4.6L6 9l4.6-1.4L12 3z" /><path d="m18 15 .7 2.3L21 18l-2.3.7L18 21l-.7-2.3L15 18l2.3-.7L18 15z" /></svg>;
+}
+
+export function IconCalendar(props: IconProps) {
+  return <svg {...base(props)}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></svg>;
+}
+
+export function IconChart(props: IconProps) {
+  return <svg {...base(props)}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>;
+}
+
+export function IconPoll(props: IconProps) {
+  return <svg {...base(props)}><path d="M5 20V10M12 20V4M19 20v-6" /></svg>;
+}
+
+export function IconLightbulb(props: IconProps) {
+  return <svg {...base(props)}><path d="M9 18h6M10 22h4" /><path d="M8.5 14.5A7 7 0 1 1 15.5 14.5C14.5 15.3 14 16 14 18h-4c0-2-.5-2.7-1.5-3.5z" /></svg>;
+}

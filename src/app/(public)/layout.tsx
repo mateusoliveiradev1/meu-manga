@@ -3,7 +3,7 @@ import { PageView } from "@/components/analytics/pageview";
 import { HitCounter } from "@/components/ui/counter";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LogoutButton } from "@/components/auth/forms";
-import { IconBell, IconGear, IconTrophy, IconUser, IconUsers } from "@/components/ui/icons";
+import { IconBell, IconBookmark, IconGear, IconSpark, IconTrophy, IconUser, IconUsers } from "@/components/ui/icons";
 import { SiteLogo } from "@/components/ui/logo";
 import { NavLink } from "@/components/ui/nav-link";
 import { SearchBox } from "@/components/catalog/search-box";
@@ -59,6 +59,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
                   <summary><IconUser size={14} /><span>{user.name}</span></summary>
                   <div className="account-drop-panel">
                     <Link href="/perfil"><IconUser size={15} /> Meu perfil</Link>
+                    <Link href="/biblioteca"><IconBookmark size={15} /> Minha biblioteca</Link>
+                    <Link href="/para-voce"><IconSpark size={15} /> Para você</Link>
                     <Link href="/notificacoes"><IconBell size={15} /> Notificações {unreadNotifications > 0 && <span className="notification-nav-count">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</Link>
                     {user.role === "admin" && <Link href="/admin"><IconGear size={15} /> Painel do autor</Link>}
                     <LogoutButton className="account-menu-logout" />
@@ -101,7 +103,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             <Link href="/sobre">Sobre o estúdio</Link>
             <Link href="/privacidade">Privacidade & termos</Link>
             {user ? (
-              <Link href="/perfil">Meu perfil</Link>
+              <><Link href="/biblioteca">Minha biblioteca</Link><Link href="/para-voce">Para você</Link><Link href="/perfil">Meu perfil</Link></>
             ) : (
               <>
                 <Link href="/entrar">Entrar</Link>

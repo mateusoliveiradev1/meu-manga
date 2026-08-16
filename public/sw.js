@@ -1,7 +1,7 @@
 /* Service worker — Plataforma Dark Premium
    - Navegação: network-first com fallback para cache (sempre mostra o capítulo novo)
    - Imagens (/api/files e R2): cache-first com preenchimento em runtime (leitura offline) */
-const CACHE = "manga-studio-v3";
+const CACHE = "manga-studio-v4";
 const PRECACHE = ["/", "/obras", "/generos", "/sobre", "/offline"];
 
 self.addEventListener("install", (event) => {
@@ -23,6 +23,22 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
+self.addEventListener("push", (event) => {
+  let data = { title: "Meu Mangá", body: "Há uma novidade na sua estante.", href: "/notificacoes", tag: "meu-manga" };
+  try { data = { ...data, ...(event.data?.json() || {}) }; } catch { /* payload padrão */ }
+  event.waitUntil(self.registration.showNotification(data.title, { body: data.body, icon: "/icon.png", badge: "/icon.png", tag: data.tag, data: { href: data.href }, vibrate: [80, 40, 80] }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const href = event.notification.data?.href || "/notificacoes";
+  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+    const existing = clients.find((client) => new URL(client.url).origin === self.location.origin);
+    if (existing) { existing.navigate(href); return existing.focus(); }
+    return self.clients.openWindow(href);
+  }));
 });
 
 function isImage(url) {

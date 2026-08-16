@@ -8,6 +8,7 @@ import { IconArrowRight, IconBook, IconChat, IconHeart, IconUsers } from "@/comp
 import { getCurrentUser } from "@/features/auth/session";
 import { getCommunityMembers, getLatestChapters } from "@/features/catalog/queries";
 import { getLatestComments } from "@/features/comments/queries";
+import { getClubIndex } from "@/features/clubs/queries";
 import { authPath } from "@/lib/navigation";
 import { chapterLabel, formatDate, initials } from "@/lib/utils";
 
@@ -22,10 +23,11 @@ const STARTER_PROMPTS = [
 
 export default async function CommunityPage() {
   const viewer = await getCurrentUser();
-  const [activity, members, latestChapters] = await Promise.all([
+  const [activity, members, latestChapters, clubs] = await Promise.all([
     getLatestComments(24, viewer?.id),
     getCommunityMembers(10, viewer?.id),
     getLatestChapters(3),
+    getClubIndex(6),
   ]);
   const visibleMembers = members.filter((member) => member.id !== viewer?.id && (member.comments > 0 || member.likes > 0 || member.followers > 0));
   const communityReady = activity.length >= 6 && visibleMembers.length >= 3;
@@ -67,6 +69,11 @@ export default async function CommunityPage() {
           </div>
         </section>
       )}
+
+      <section className="section community-clubs" aria-labelledby="clubs-title">
+        <div className="section-head"><div><h2 id="clubs-title"><IconUsers size={19} /> Clubes por obra</h2><p className="section-description">Teorias, enquetes e conversas ficam juntas da história que deu origem a elas.</p></div></div>
+        <div className="club-index">{clubs.map(({ work, postCount, chapterCount }) => <Link key={work.id} href={`/clube/${work.slug}`}><span className="starter-cover"><ResponsiveImage src={work.cover} alt={`Capa de ${work.title}`} sizes="64px" width={64} height={86} /></span><span><strong>{work.title}</strong><small>{postCount ? `${postCount} ${postCount === 1 ? "publicação" : "publicações"}` : "mesa pronta para começar"} · {chapterCount} {chapterCount === 1 ? "capítulo" : "capítulos"}</small></span><IconArrowRight size={14} /></Link>)}</div>
+      </section>
 
       <section className="section community-feed" aria-labelledby="feed-title">
         <div className="section-head"><div><h2 id="feed-title"><IconChat size={19} /> Conversas recentes</h2><p className="section-description">Ideias, reações e teorias publicadas nas obras e capítulos.</p></div></div>
