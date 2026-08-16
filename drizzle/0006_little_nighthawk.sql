@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "reading_stats_day_chapter_uniq" ON "reading_stats" USING btree ("day","chapter_id");

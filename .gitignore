@@ -36,6 +36,14 @@ yarn-error.log*
 # vercel
 .vercel
 
+# uploaded images (database lives in Postgres/Neon; served via /api/files)
+/uploads
+/public/uploads
+
+# dumps do banco e screenshots (dados reais / arquivos locais)
+/backups
+/shots
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

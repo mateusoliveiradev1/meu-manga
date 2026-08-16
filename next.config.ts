@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // nothing to externalize: the app runs fully on Postgres (Neon) + Next.js
 };
 
 export default nextConfig;

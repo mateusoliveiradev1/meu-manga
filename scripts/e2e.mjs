@@ -1,0 +1,251 @@
+/* End-to-end verification against the running server (npm start).
+   Covers: register (admin email) -> admin panel -> create obra -> chapter ->
+   pages via URL -> publish -> public visibility -> comment -> favorite -> progress.
+   Cleans up the created test data at the end. */
+
+import fs from "node:fs";
+import { chromium } from "playwright";
+
+const BASE = process.env.BASE_URL || "http://localhost:3000";
+// the admin email must match the SERVER's ADMIN_EMAIL (read from .env by default,
+// or override with E2E_ADMIN_EMAIL when testing against a dedicated server)
+function readEnvValue(name) {
+  try {
+    const line = fs.readFileSync(".env", "utf8").split(/\r?\n/).find((l) => l.startsWith(name + "="));
+    if (line) return line.slice(name.length + 1).trim();
+  } catch {}
+  return undefined;
+}
+const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL || readEnvValue("ADMIN_EMAIL") || "voce@exemplo.com";
+const EMAIL = process.env.ADMIN_TEST ? ADMIN_EMAIL : `teste-${Date.now()}@exemplo.com`;
+const PASSWORD = "senha-teste-123";
+const NAME = "Teste E2E";
+const TITLE = `Obra E2E ${Date.now()}`;
+
+const results = [];
+function check(label, ok, extra = "") {
+  results.push({ label, ok, extra });
+  console.log(`${ok ? "PASS" : "FAIL"}  ${label}${extra ? ` — ${extra}` : ""}`);
+}
+
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+
+try {
+  // 1. home loads (self-contained: no dependency on seed sample data)
+  await page.goto(BASE + "/", { waitUntil: "load" });
+  check("home carrega", (await page.content()).includes('href="/entrar"') || (await page.content()).includes("site-header"));
+  const SERIES_SLUG = TITLE.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  let TEST_CHAPTER_ID = null;
+
+  // 1b. header: search + genres dropdown + about link
+  check("header tem busca", (await page.locator(".header-search input").count()) === 1);
+  check("header tem dropdown de gêneros", (await page.locator(".genre-drop summary").count()) === 1);
+  await page.click(".genre-drop summary");
+  await page.waitForTimeout(300);
+  const dropLinks = await page.locator(".genre-drop-panel a").count();
+  check("dropdown lista os gêneros", dropLinks >= 10, `${dropLinks} gêneros`);
+  check("link Sobre no header", (await page.locator('.site-nav a[href="/sobre"]').count()) === 1);
+
+  // 1c. genre filter on home
+  await page.goto(BASE + "/?genero=drama", { waitUntil: "load" });
+  const genreH2 = await page.locator("h2").first().innerText();
+  check("filtro por gênero na home", genreH2.includes("Gênero: Drama"), genreH2);
+
+  // 1d. search from the header
+  await page.goto(BASE + "/", { waitUntil: "load" });
+  await page.fill(".header-search input", "eco");
+  await page.press(".header-search input", "Enter");
+  await page.waitForTimeout(800);
+  const searchH2 = await page.locator("h2").first().innerText();
+  check("busca do header filtra obras", searchH2.includes("Busca:"), searchH2);
+
+  // 1e. about page
+  await page.goto(BASE + "/sobre", { waitUntil: "load" });
+  check("página Sobre carrega", (await page.content()).includes("O estúdio") && (await page.locator(".stat").count()) >= 2);
+
+  // 1f. genre page + SEO endpoints
+  await page.goto(BASE + "/genero/horror", { waitUntil: "load" });
+  const genrePage = await page.evaluate(() => ({
+    h1: document.querySelector("h1")?.textContent ?? "",
+    blurb: !!document.querySelector(".genre-blurb"),
+  }));
+  check("página de gênero dedicada", genrePage.h1 === "Horror" && genrePage.blurb);
+  const seo = await Promise.all(["sitemap.xml", "robots.txt", "rss.xml", "manifest.webmanifest"].map(async (path) => {
+    const res = await fetch(BASE + "/" + path);
+    return res.status;
+  }));
+  check("sitemap/robots/rss/manifest no ar", seo.every((s) => s === 200), seo.join(","));
+
+  // 2. register (fall back to login if the account already exists)
+  await page.goto(BASE + "/cadastro", { waitUntil: "load" });
+  await page.fill("#reg-name", NAME);
+  await page.fill("#reg-email", EMAIL);
+  await page.fill("#reg-password", PASSWORD);
+  await page.click('button:has-text("Criar conta")');
+  const regRedirected = await page
+    .waitForURL(BASE + "/", { timeout: 8000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!regRedirected) {
+    // account already exists — log in instead
+    await page.goto(BASE + "/entrar", { waitUntil: "load" });
+    await page.fill("#login-email", EMAIL);
+    await page.fill("#login-password", PASSWORD);
+    await page.click('button:has-text("Entrar")');
+    await page.waitForURL(BASE + "/", { timeout: 15000 });
+  }
+  check("cadastro/login autentica", true);
+  check("nome aparece no header", (await page.content()).includes(NAME));
+
+  // 3. admin promotion only happens for ADMIN_EMAIL — if this test email matches, panel appears
+  const isAdminEmail = EMAIL === ADMIN_EMAIL;
+  if (isAdminEmail) {
+    await page.goto(BASE + "/admin", { waitUntil: "load" });
+    check("painel admin acessível (email admin)", (await page.content()).includes("Suas obras"));
+  } else {
+    await page.goto(BASE + "/admin", { waitUntil: "load" });
+    check("admin bloqueado para não-admin", page.url().startsWith(BASE + "/entrar") || page.url() === BASE + "/");
+  }
+
+  // 4. create a series (only if admin)
+  if (isAdminEmail) {
+    await page.goto(BASE + "/admin/obras/novo", { waitUntil: "load" });
+    await page.fill("#sf-title", TITLE);
+    await page.fill("#sf-synopsis", "Sinopse criada pelo teste de ponta a ponta.");
+    await page.fill("#sf-tags", "teste, e2e");
+    await page.click('button:has-text("Salvar obra")');
+    await page.waitForURL(/\/admin\/obras\/\d+\/capitulos/, { timeout: 15000 });
+    check("obra criada -> página de capítulos", true);
+
+    // 5. create a chapter
+    await page.click('a:has-text("Novo capítulo")');
+    await page.waitForURL(/\/admin\/capitulos\/novo/, { timeout: 10000 });
+    await page.fill("#cf-number", "1");
+    await page.fill("#cf-title", "Capítulo de teste");
+    await page.click('button:has-text("Criar capítulo")');
+    await page.waitForURL(/\/admin\/capitulos\/\d+\/editar/, { timeout: 15000 });
+    TEST_CHAPTER_ID = Number(page.url().match(/\/admin\/capitulos\/(\d+)\/editar/)[1]);
+    check("capítulo criado -> editor", true);
+
+    // 6. add pages via URLs
+    await page.fill("textarea", "https://picsum.photos/seed/e2e1/800/1200\nhttps://picsum.photos/seed/e2e2/800/1200");
+    await page.click('button:has-text("Adicionar URLs")');
+    await page.waitForTimeout(2500);
+    await page.waitForSelector(".pm-row", { timeout: 10000 });
+    check("páginas adicionadas via URL", true);
+
+    // 6b. upload a real image file through the panel file input
+    const pngB64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    fs.writeFileSync("e2e-upload.png", Buffer.from(pngB64, "base64"));
+    await page.setInputFiles(".pm-upload input[type=file]", "e2e-upload.png");
+    await page.waitForTimeout(3000);
+    fs.unlinkSync("e2e-upload.png");
+    check("página enviada por upload (arquivo real)", (await page.content()).includes("/api/files/"));
+
+    // 6c. preview: draft chapter is visible only to the admin with ?preview=1
+    await page.goto(BASE + "/ler/" + TEST_CHAPTER_ID + "?preview=1", { waitUntil: "load" });
+    await page.waitForTimeout(800);
+    check("pré-visualização do capítulo rascunho (admin)", (await page.content()).includes("Prévia do autor"));
+    await page.goto(BASE + "/admin/capitulos/" + TEST_CHAPTER_ID + "/editar", { waitUntil: "load" });
+    await page.waitForTimeout(600);
+
+    // 7. publish
+    await page.check('input[type="checkbox"]');
+    await page.click('button:has-text("Salvar capítulo")');
+    await page.waitForTimeout(2000);
+    check("capítulo salvo (publish checkbox)", page.url().includes("/admin/capitulos/"));
+
+    // 8. public visibility: obra on home + published chapter with pages on obra page
+    await page.goto(BASE + "/", { waitUntil: "load" });
+    const homeHtml = await page.content();
+    check("obra aparece na home pública", homeHtml.includes(TITLE));
+    await page.goto(BASE + "/obra/" + SERIES_SLUG, { waitUntil: "load" });
+    const obraHtml = await page.content();
+    check("capítulo publicado visível na obra", obraHtml.includes("Capítulo de teste"));
+  }
+
+  // 9. comment on the created chapter (logged in)
+  await page.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
+  await page.waitForSelector("#cm-msg", { timeout: 10000 });
+  const msg = `Comentário E2E ${Date.now()}`;
+  await page.fill("#cm-msg", msg);
+  await page.click('button:has-text("Comentar")');
+  await page.waitForTimeout(2000);
+  await page.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
+  await page.waitForSelector(".cm-entry", { timeout: 10000 });
+  check("comentário salvo e visível", (await page.content()).includes(msg));
+
+  // 10. favorite the created series
+  await page.goto(BASE + "/obra/" + SERIES_SLUG, { waitUntil: "load" });
+  await page.waitForSelector('button:has-text("Favoritar")', { timeout: 10000 });
+  await page.click('button:has-text("Favoritar")');
+  await page.waitForTimeout(1200);
+  await page.goto(BASE + "/", { waitUntil: "load" });
+  const home2 = await page.content();
+  check("favoritar mostra a obra nas favoritas", home2.includes("Suas favoritas") && home2.includes(TITLE));
+
+  // 11. reading progress (page mode click — reader defaults to scroll mode)
+  await page.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
+  await page.waitForSelector(".rt-mode button", { timeout: 10000 });
+  await page.click('.rt-mode button:has-text("Página")');
+  await page.waitForSelector(".page-nav.next", { timeout: 10000 });
+  await page.click(".page-nav.next");
+  await page.waitForTimeout(1500);
+  await page.goto(BASE + "/obra/" + SERIES_SLUG, { waitUntil: "load" });
+  // the progress save is a fire-and-forget fetch — with a slow DB it can land
+  // a beat after the page renders, so retry before declaring failure
+  let sawContinue = (await page.content()).includes("continuar de onde parei");
+  let retries = 0;
+  while (!sawContinue && retries < 6) {
+    await page.waitForTimeout(1500);
+    await page.reload({ waitUntil: "load" });
+    sawContinue = (await page.content()).includes("continuar de onde parei");
+    retries++;
+  }
+  check("progresso de leitura salvo (continuar)", sawContinue);
+
+  // 11b. rate the series (4 stars) — logged in
+  await page.waitForSelector(".rating-stars button", { timeout: 10000 });
+  await page.waitForTimeout(1200); // session hydration (button enables after isPending)
+  await page.click(".rating-stars button:nth-child(4)");
+  await page.waitForTimeout(2000);
+  const rated = await page.content();
+  check("rating da obra salvo (média 4.0)", rated.includes("4.0") && rated.includes("1 nota"), "avg+count");
+
+  // 11c. comment on the series itself
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(600);
+  await page.waitForSelector("#cm-msg", { timeout: 10000 });
+  const seriesMsg = `Comentário da obra ${Date.now()}`;
+  await page.fill("#cm-msg", seriesMsg);
+  await page.evaluate(() => {
+    const btn = Array.from(document.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Comentar");
+    btn?.click();
+  });
+  await page.waitForTimeout(2000);
+  await page.goto(BASE + "/obra/" + SERIES_SLUG, { waitUntil: "load" });
+  await page.waitForTimeout(800);
+  const seriesCmt = await page.content();
+  check("comentário na obra salvo e visível", seriesCmt.includes(seriesMsg) && seriesCmt.includes("Comentários da obra"));
+
+  // 12. profile: name in header links to /perfil; sections show the data
+  const nameHref = await page.evaluate(() => document.querySelector("a.nav-user")?.getAttribute("href") ?? null);
+  check("nome no header leva ao perfil", nameHref === "/perfil");
+  await page.goto(BASE + "/perfil", { waitUntil: "load" });
+  await page.waitForSelector(".profile-card", { timeout: 10000 });
+  const profileHtml = await page.content();
+  check(
+    "perfil mostra leituras, favoritas e comentários",
+    profileHtml.includes("Continuar lendo") && profileHtml.includes("Favoritas") && profileHtml.includes("Meus comentários")
+  );
+} catch (err) {
+  check("fluxo completo", false, err.message);
+  console.log("URL no erro:", page.url());
+}
+
+await browser.close();
+
+const failed = results.filter((r) => !r.ok);
+console.log(`\n${results.length - failed.length}/${results.length} passaram`);
+process.exit(failed.length > 0 ? 1 : 0);

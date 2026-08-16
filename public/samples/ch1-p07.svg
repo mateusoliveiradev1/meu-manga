@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1280" viewBox="0 0 900 1280">
+
+      <defs>
+        <pattern id="ht3" width="6" height="6" patternUnits="userSpaceOnUse">
+    <circle cx="1.5" cy="1.5" r="1.5" fill="#1a1a2e" opacity="0.1"/>
+  </pattern><pattern id="ht4" width="8" height="8" patternUnits="userSpaceOnUse">
+    <circle cx="2" cy="2" r="2" fill="#1a1a2e" opacity="0.07"/>
+  </pattern>
+        <clipPath id="lp1"><rect x="40" y="60" width="820" height="430" rx="6"/></clipPath>
+        <clipPath id="lp2"><rect x="40" y="530" width="820" height="460" rx="6"/></clipPath>
+        <clipPath id="lp3"><rect x="40" y="1030" width="820" height="180" rx="6"/></clipPath>
+      </defs>
+      <rect x="0" y="0" width="900" height="1280" fill="#f2efe6"/>
+      <rect x="0" y="0" width="900" height="1280" fill="url(#ht3)" opacity="0.55"/>
+      <g clip-path="url(#lp1)">
+        <rect x="40" y="60" width="820" height="430" fill="#e9e3d2"/>
+        <circle cx="702" cy="150" r="52" fill="#f7f0d8" stroke="#1c1c28" stroke-width="3"/>
+        <path d="M 40 330 Q 225 300 450 330 T 860 330 L 860 490 L 40 490 Z" fill="#c9c2a8"/>
+        <path d="M 40 350 Q 225 322 450 350 T 860 350" fill="none" stroke="#1c1c28" stroke-width="3" opacity="0.5"/>
+        <path d="M 180 350 L 180 410 L 240 410 L 240 350" fill="none" stroke="#1c1c28" stroke-width="4"/>
+        <path d="M 160 350 Q 210 320 260 350" fill="none" stroke="#1c1c28" stroke-width="4"/>
+        <text x="180" y="470" width="540" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#3a3a55">Manhã clara depois da tempestade.</text>
+      </g>
+      <g clip-path="url(#lp2)">
+        <rect x="40" y="530" width="820" height="460" fill="#dfd8c2"/>
+        <line x1="867.2710692136717" y1="530" x2="881.2710692136717" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="822.1178638169961" y1="530" x2="836.1178638169961" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="829.5656191532673" y1="530" x2="843.5656191532673" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="805.7091435454826" y1="530" x2="819.7091435454826" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="447.7356207645988" y1="530" x2="461.7356207645988" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="675.3771806227977" y1="530" x2="689.3771806227977" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="551.8448345978991" y1="530" x2="565.8448345978991" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="836.7062044949228" y1="530" x2="850.7062044949228" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="603.5743746743262" y1="530" x2="617.5743746743262" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="717.6588930995006" y1="530" x2="731.6588930995006" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="660.1242218387492" y1="530" x2="674.1242218387492" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="716.6920029113318" y1="530" x2="730.6920029113318" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="664.4306324556972" y1="530" x2="678.4306324556972" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="454.14508947824925" y1="530" x2="468.14508947824925" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="591.0385911427859" y1="530" x2="605.0385911427859" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="412.6487817970955" y1="530" x2="426.6487817970955" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="718.9256697097812" y1="530" x2="732.9256697097812" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="837.7230035531586" y1="530" x2="851.7230035531586" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="817.8117420246956" y1="530" x2="831.8117420246956" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="528.7605207508598" y1="530" x2="542.7605207508598" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="542.8186424357687" y1="530" x2="556.8186424357687" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="632.7664299597425" y1="530" x2="646.7664299597425" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="699.2067021126825" y1="530" x2="713.2067021126825" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="765.1389961865605" y1="530" x2="779.1389961865605" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="827.9264242902534" y1="530" x2="841.9264242902534" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/><line x1="853.1806029557138" y1="530" x2="867.1806029557138" y2="990" stroke="#2b2b45" stroke-width="1.1" opacity="0.5"/>
+        <g><path d="M 444 758 l -8 16 l 16 -8 z" fill="#ffffff" stroke="#101018" stroke-width="3"/>
+    <ellipse cx="450" cy="700" rx="120" ry="60" fill="#ffffff" stroke="#101018" stroke-width="4"/>
+    <text x="450" y="705" text-anchor="middle" font-family="Georgia, serif" font-size="17" fill="#101018">O mar devolveu a luz!</text>
+  </g>
+      </g>
+      <g clip-path="url(#lp3)">
+        <rect x="40" y="1030" width="820" height="180" fill="#e9e3d2"/>
+        <text x="70" y="1090" width="760" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#3a3a55">Lumi sabia que o céu cobra caro por cada luz devolvida.</text>
+      </g>
+      <rect x="40" y="60" width="820" height="430" fill="#ffffff" stroke="#101018" stroke-width="5"/>
+      <rect x="40" y="530" width="820" height="460" fill="#ffffff" stroke="#101018" stroke-width="5"/>
+      <rect x="40" y="1030" width="820" height="180" fill="#ffffff" stroke="#101018" stroke-width="5"/>
+      
+</svg>

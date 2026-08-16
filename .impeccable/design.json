@@ -1,0 +1,475 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-14T00:00:00.000Z",
+  "title": "Design System: Plataforma Dark Premium",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "canonical": "#0a0a0f",
+        "tonalRamp": [
+          "#020203",
+          "#040405",
+          "#060607",
+          "#0c0c10",
+          "#14141a",
+          "#1c1c24",
+          "#24242e",
+          "#2c2c38"
+        ]
+      },
+      "bg-deep": {
+        "role": "neutral",
+        "displayName": "Tinta Profunda",
+        "canonical": "#060609",
+        "tonalRamp": [
+          "#010102",
+          "#020203",
+          "#040405",
+          "#070709",
+          "#0d0d10",
+          "#131317",
+          "#19191e",
+          "#1f1f25"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Superfície",
+        "canonical": "#121218",
+        "tonalRamp": [
+          "#030304",
+          "#060608",
+          "#09090c",
+          "#15151b",
+          "#1d1d25",
+          "#25252f",
+          "#2d2d39",
+          "#353543"
+        ]
+      },
+      "surface-2": {
+        "role": "neutral",
+        "displayName": "Superfície 2",
+        "canonical": "#1b1b23",
+        "tonalRamp": [
+          "#050506",
+          "#08080b",
+          "#0b0b0f",
+          "#1e1e26",
+          "#282833",
+          "#32323f",
+          "#3c3c4b",
+          "#464657"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Fio",
+        "canonical": "#262630",
+        "tonalRamp": [
+          "#08080b",
+          "#101014",
+          "#18181d",
+          "#2b2b36",
+          "#3a3a48",
+          "#49495a",
+          "#58586c",
+          "#67677e"
+        ]
+      },
+      "line-soft": {
+        "role": "neutral",
+        "displayName": "Fio Suave",
+        "canonical": "#1d1d25",
+        "tonalRamp": [
+          "#060608",
+          "#0c0c10",
+          "#121216",
+          "#21212a",
+          "#2e2e3a",
+          "#3b3b49",
+          "#484859",
+          "#555568"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Papel",
+        "canonical": "#f4f1e9",
+        "tonalRamp": [
+          "#2c2a25",
+          "#48453e",
+          "#646057",
+          "#807c71",
+          "#9c978b",
+          "#bab5a7",
+          "#d6d2c4",
+          "#f2efe6"
+        ]
+      },
+      "paper-dim": {
+        "role": "neutral",
+        "displayName": "Papel Suave",
+        "canonical": "#cfc9ba",
+        "tonalRamp": [
+          "#26241f",
+          "#3d3a33",
+          "#555148",
+          "#6d695f",
+          "#878279",
+          "#a29d92",
+          "#cfc9ba",
+          "#e3dfd3"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta de Texto",
+        "canonical": "#ecebe6",
+        "tonalRamp": [
+          "#2a2926",
+          "#45443f",
+          "#605f59",
+          "#7b7a73",
+          "#97958e",
+          "#b5b3ab",
+          "#d0cec6",
+          "#e8e5dc"
+        ]
+      },
+      "ink-dim": {
+        "role": "neutral",
+        "displayName": "Tinta Suave",
+        "canonical": "#a2a0ab",
+        "tonalRamp": [
+          "#1e1d1b",
+          "#33322f",
+          "#484744",
+          "#5e5c58",
+          "#75736e",
+          "#8c8a84",
+          "#a5a29a",
+          "#c2bfb8"
+        ]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Tinta Fraca",
+        "canonical": "#858279",
+        "tonalRamp": [
+          "#1a1917",
+          "#2c2b28",
+          "#3e3c39",
+          "#504e4a",
+          "#62605b",
+          "#74716b",
+          "#858279",
+          "#9b988f"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Amarelo Shonen",
+        "canonical": "#f5c518",
+        "tonalRamp": [
+          "#332a05",
+          "#4f4008",
+          "#6b560b",
+          "#876c0e",
+          "#a48312",
+          "#c29a15",
+          "#f5c518",
+          "#ffdf63"
+        ]
+      },
+      "accent-bright": {
+        "role": "primary",
+        "displayName": "Amarelo Claro",
+        "canonical": "#ffd94a",
+        "tonalRamp": [
+          "#352d09",
+          "#52460f",
+          "#6f5f15",
+          "#8c781b",
+          "#a99221",
+          "#c7ac27",
+          "#ffd94a",
+          "#ffe78d"
+        ]
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "Tinta do Amarelo",
+        "canonical": "#191204",
+        "tonalRamp": [
+          "#0d0a00",
+          "#141000",
+          "#1a1300",
+          "#241a00",
+          "#302300",
+          "#3c2c00",
+          "#483500",
+          "#543e00"
+        ]
+      },
+      "green": {
+        "role": "secondary",
+        "displayName": "Verde",
+        "canonical": "#4ade80",
+        "tonalRamp": [
+          "#0a2e18",
+          "#104824",
+          "#166230",
+          "#1c7c3c",
+          "#229648",
+          "#2bb356",
+          "#4ade80",
+          "#8ff0ae"
+        ]
+      },
+      "cyan": {
+        "role": "secondary",
+        "displayName": "Ciano",
+        "canonical": "#22d3ee",
+        "tonalRamp": [
+          "#052c33",
+          "#09464f",
+          "#0d606b",
+          "#117a87",
+          "#1694a3",
+          "#1bb8c8",
+          "#22d3ee",
+          "#7ce8f7"
+        ]
+      },
+      "orange": {
+        "role": "secondary",
+        "displayName": "Laranja",
+        "canonical": "#f59e0b",
+        "tonalRamp": [
+          "#332006",
+          "#4f3108",
+          "#6b420b",
+          "#87530e",
+          "#a46412",
+          "#c27d15",
+          "#f59e0b",
+          "#ffc45c"
+        ]
+      },
+      "magenta": {
+        "role": "secondary",
+        "displayName": "Magenta",
+        "canonical": "#e879f9",
+        "tonalRamp": [
+          "#2f1733",
+          "#4a2452",
+          "#653170",
+          "#803e8f",
+          "#9b4cae",
+          "#b95fd0",
+          "#e879f9",
+          "#f3adfd"
+        ]
+      },
+      "red": {
+        "role": "secondary",
+        "displayName": "Vermelho",
+        "canonical": "#f87171",
+        "tonalRamp": [
+          "#331616",
+          "#4f2323",
+          "#6b3030",
+          "#873d3d",
+          "#a44a4a",
+          "#c25d5d",
+          "#f87171",
+          "#ffa9a9"
+        ]
+      },
+      "red-deep": {
+        "role": "secondary",
+        "displayName": "Vermelho Profundo",
+        "canonical": "#7f1d1d",
+        "tonalRamp": [
+          "#1a0606",
+          "#2a0a0a",
+          "#3a0e0e",
+          "#4a1212",
+          "#5a1616",
+          "#6a1a1a",
+          "#7f1d1d",
+          "#9c3333"
+        ]
+      },
+      "paper-ink": {
+        "role": "neutral",
+        "displayName": "Tinta do Papel",
+        "canonical": "#191510",
+        "tonalRamp": [
+          "#050403",
+          "#0a0806",
+          "#0f0c09",
+          "#191510",
+          "#241f18",
+          "#302a21",
+          "#3c352a",
+          "#484033"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Wordmark da sala de leitura com o slash amarelo; caixa alta."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Títulos de seção (h2); caixa alta."
+      },
+      "body": {
+        "displayName": "Corpo",
+        "purpose": "Texto de leitura, sinopses, recados; medida de 68ch."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Contadores, números de capítulo/página e dados tabulares."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel-grounding",
+        "value": "0 6px 18px rgba(0,0,0,0.45)",
+        "purpose": "Aterramento suave quando uma camada precisa descolar; nunca junto com hairline."
+      },
+      {
+        "name": "reader-deep",
+        "value": "0 14px 40px rgba(0,0,0,0.6)",
+        "purpose": "Moldura da página de manga dentro do leitor."
+      },
+      {
+        "name": "wordmark-hard",
+        "value": "3px 3px 0 #f5c518",
+        "purpose": "A única sombra dura do mundo: o grito de capa do wordmark."
+      }
+    ],
+    "motion": [
+      {
+        "name": "speedline-divider",
+        "value": "static (repeating-linear-gradient + mask)",
+        "purpose": "Divisória de velocidade entre seções; desenhada, sem animação."
+      },
+      {
+        "name": "blink-soft",
+        "value": "2.2s ease-in-out infinite (opacity 1 -> 0.4)",
+        "purpose": "Piscar de novidade em badges; desligado com prefers-reduced-motion."
+      },
+      {
+        "name": "page-in",
+        "value": "0.3s cubic-bezier(0.16,1,0.3,1) (opacity + translateY 6px)",
+        "purpose": "Transição entre páginas do leitor."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Easing padrão para respostas de estado."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "720px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botão Primário",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A ação principal amarela da sala de leitura.",
+      "html": "<button class=\"ds-btn-primary\">Ler</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; font-family: 'Anton', 'Arial Black', system-ui, sans-serif; font-size: 0.85rem; letter-spacing: 0.08em; text-transform: uppercase; color: #1a1300; background: #f5c518; border: 1px solid #f5c518; border-radius: 8px; padding: 0.55rem 1.15rem; cursor: pointer; transition: transform 0.12s cubic-bezier(0.16,1,0.3,1), background 0.12s ease; } .ds-btn-primary:hover { background: #ffd94a; transform: translateY(-1px); } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 2px solid #f5c518; outline-offset: 3px; }"
+    },
+    {
+      "name": "Botão Fantasma",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Ação secundária e navegação.",
+      "html": "<button class=\"ds-btn-ghost\">Voltar</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 0.5rem; font-family: 'Anton', 'Arial Black', system-ui, sans-serif; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: #e8e5dc; background: transparent; border: 1px solid #2b2b36; border-radius: 8px; padding: 0.5rem 1rem; cursor: pointer; transition: border-color 0.12s ease, color 0.12s ease; } .ds-btn-ghost:hover { border-color: #f5c518; color: #f5c518; } .ds-btn-ghost:focus-visible { outline: 2px solid #f5c518; outline-offset: 3px; }"
+    },
+    {
+      "name": "Painel de Dupla Moldura",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Superfície de conteúdo com moldura de quadrinho: linha grossa externa + linha fina interna.",
+      "html": "<div class=\"ds-panel\"><b>Título</b><p>Conteúdo em painel com dupla moldura.</p></div>",
+      "css": ".ds-panel { background: #15151b; border: 2px solid #2b2b36; outline: 1px solid #21212a; outline-offset: -6px; border-radius: 10px; padding: 1.2rem; color: #e8e5dc; font-family: system-ui, sans-serif; line-height: 1.65; } .ds-panel b { font-family: 'Anton', 'Arial Black', sans-serif; font-weight: 400; font-size: 1.2rem; text-transform: uppercase; display: block; margin-bottom: 0.3rem; } .ds-panel p { margin: 0; color: #a5a29a; }"
+    },
+    {
+      "name": "Campo de Texto",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de formulário com foco amarelo.",
+      "html": "<input class=\"ds-input\" placeholder=\"Digite aqui...\" />",
+      "css": ".ds-input { font-family: system-ui, sans-serif; font-size: 1rem; color: #e8e5dc; background: #070709; border: 1px solid #2b2b36; border-radius: 6px; padding: 0.55rem 0.75rem; caret-color: #f5c518; transition: border-color 0.15s ease, box-shadow 0.15s ease; } .ds-input:focus { outline: none; border-color: #f5c518; box-shadow: 0 0 0 3px rgba(245,197,24,0.15); } .ds-input::placeholder { color: #858279; }"
+    },
+    {
+      "name": "Contador Mono",
+      "kind": "custom",
+      "refersTo": "counter-display",
+      "description": "Contador de leituras do rodapé, JetBrains Mono.",
+      "html": "<span class=\"ds-counter\">2 144</span>",
+      "css": ".ds-counter { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.8rem; line-height: 1; color: #f5c518; letter-spacing: 0.04em; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Plataforma Dark Premium",
+    "overview": "Uma plataforma de leitura de manga escura, densa e moderna: chão preto-azulado limpo sem textura, superfícies grafite com borda 1px, capas grandes como produto (banner em destaque + grade larga), um amarelo shonen como voz de marca e um leitor premium sobre o vazio com zoom e contador em pílula.",
+    "keyCharacteristics": [
+      "Chão tinta limpo (#0a0a0f) sem textura; superfícies grafite com borda 1px e cantos 12-16px.",
+      "Banner em destaque na home: capa 3:4 grande, glows radiais sutis, sinopse, meta e CTAs.",
+      "Grade de capas larga (6 colunas desktop, 2 mobile) com hover de elevação.",
+      "Um único amarelo shonen como voz de marca: botões, foco, números, mark do logo.",
+      "Leitor premium: fade-in, zoom por duplo clique, contador em pílula central, barra de progresso amarela.",
+      "Índices de seção numerados em mono (01, 02, ★) — paginação de catálogo."
+    ],
+    "rules": [
+      {
+        "name": "A Regra da Capa",
+        "body": "A capa é o produto: nenhum chrome compete com a arte. O amarelo é reservado a ações; links comuns são claros; badges de status são pílulas discretas.",
+        "section": "colors"
+      },
+      {
+        "name": "A Regra da Superfície Limpa",
+        "body": "Sem textura, sem molduras duplas, sem enfeites de quadrinho — elevação é superfície + borda 1px + sombra suave. Densidade vem do conteúdo.",
+        "section": "colors"
+      },
+      {
+        "name": "A Regra do Grito Único",
+        "body": "Em ênfase, só peso ou escala do Anton — nunca gradiente em texto.",
+        "section": "typography"
+      },
+      {
+        "name": "A Regra do Toque Mínimo",
+        "body": "O leitor tem exatamente um acento: o amarelo. Contador, progresso e setas falam amarelo sobre o vazio.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do deixar as capas grandes e respirando — elas são o produto.",
+      "Do manter as superfícies limpas (1px, sem textura) e o amarelo reservado a ações.",
+      "Do desenhar ícones como SVG de traço consistente; nunca emoji ou glifos Unicode.",
+      "Do preencher a home com conteúdo: banner + grade + recados."
+    ],
+    "donts": [
+      "Don't usar gradiente em texto; ênfase vem de peso ou escala do Anton.",
+      "Don't adicionar textura, molduras duplas, divisórias de velocidade ou carimbos — plataforma moderna, não quadrinho.",
+      "Don't deixar a página esparsa: densidade de conteúdo é a beleza.",
+      "Don't fazer o site parecer template: é uma plataforma de manga — escura, densa e tátil."
+    ]
+  }
+}
