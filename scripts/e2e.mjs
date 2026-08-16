@@ -42,23 +42,53 @@ try {
   let TEST_CHAPTER_ID = null;
   let chapterCommentText = "";
 
-  // 1b. header: search + genres dropdown + about link
+  // 1b. header: search + genres dropdown + compact primary navigation
   check("header tem busca", (await page.locator(".header-search input").count()) === 1);
   check("header tem dropdown de gêneros", (await page.locator(".genre-drop summary").count()) === 1);
   await page.click(".genre-drop summary");
   await page.waitForTimeout(300);
   const dropLinks = await page.locator(".genre-drop-panel a").count();
   check("dropdown lista os gêneros", dropLinks >= 10, `${dropLinks} gêneros`);
-  check("link Sobre no header", (await page.locator('.site-nav a[href="/sobre"]').count()) === 1);
+  check("Sobre fica no rodapé", (await page.locator('footer a[href="/sobre"]').count()) === 1 && (await page.locator('.site-nav a[href="/sobre"]').count()) === 0);
   check("link Ranking no header", (await page.locator('.site-nav a[href="/ranking"]').count()) === 1);
 
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(BASE + "/", { waitUntil: "load" });
+  await page.click(".mobile-menu-trigger");
+  const mobileMenu = await page.locator(".mobile-menu-panel").evaluate((panel) => {
+    const box = panel.getBoundingClientRect();
+    return {
+      top: box.top,
+      bottom: box.bottom,
+      viewport: window.innerHeight,
+      bodyOverflow: getComputedStyle(document.body).overflow,
+    };
+  });
+  check(
+    "menu mobile abre dentro da tela",
+    mobileMenu.top >= 0 && mobileMenu.bottom <= mobileMenu.viewport && mobileMenu.bodyOverflow === "hidden",
+    JSON.stringify(mobileMenu)
+  );
+  await page.click('.mobile-menu-head button[aria-label="Fechar menu"]');
+  await page.setViewportSize({ width: 1280, height: 900 });
+
   await page.goto(BASE + "/ranking", { waitUntil: "load" });
-  check("ranking público carrega", (await page.locator("h1").textContent())?.includes("histórias que estão puxando a fila"));
+  const rankingTitle = (await page.locator("h1").textContent()) ?? "";
+  check(
+    "ranking público carrega",
+    rankingTitle.includes("histórias que estão puxando a fila") || rankingTitle.includes("ranking que cresce com os leitores"),
+    rankingTitle
+  );
 
   // 1c. catalog and genre discovery
   await page.goto(BASE + "/obras", { waitUntil: "load" });
   const catalogH1 = await page.locator("h1").first().innerText();
   check("catálogo dedicado carrega", catalogH1.includes("próxima história"), catalogH1);
+  check(
+    "filtros do catálogo usam divulgação progressiva",
+    (await page.locator("details.catalog-controls").count()) === 1 &&
+      !(await page.locator("details.catalog-controls").getAttribute("open"))
+  );
 
   await page.goto(BASE + "/genero/drama", { waitUntil: "load" });
   const genreH1 = await page.locator("h1").first().innerText();

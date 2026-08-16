@@ -78,7 +78,7 @@ export default async function ReaderPage({
       <div className="reader-shell" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
         <div className="manga-panel" style={{ padding: "2rem", maxWidth: "30rem", textAlign: "center" }}>
           <h2>Este capítulo ainda não tem páginas</h2>
-          <p className="muted">Volte em breve — o autor(a) está desenhando.</p>
+          <p className="muted">As páginas deste capítulo ainda estão sendo preparadas pelo estúdio.</p>
           <Link className="btn ghost mt-2" href={`/obra/${chapter.series_slug}`}>
             Voltar à obra
           </Link>

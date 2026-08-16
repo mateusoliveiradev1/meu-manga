@@ -169,6 +169,8 @@ export function SeriesGrid({
   const totalPages = Math.max(1, Math.ceil(series.length / perPage));
   const currentPage = Math.min(Math.max(1, page), totalPages);
   const visibleSeries = series.slice((currentPage - 1) * perPage, currentPage * perPage);
+  const selectedGenre = genre ? genreBySlug(genre) : undefined;
+  const selectedSort = SORT_TABS.find((item) => item.key === sort)?.label ?? "Mais recentes";
   const empty =
     series.length === 0 ? (
       <div className="empty-state">
@@ -185,17 +187,24 @@ export function SeriesGrid({
   return (
     <>
       {showToolbar && (
-        <div className="catalog-toolbar">
-          {showGenreBar && <GenreBar base={base} q={q} genre={genre} sort={sort} />}
-          <SortTabs base={base} q={q} genre={genre} sort={sort} />
-        </div>
+        <details className="catalog-controls">
+          <summary>
+            <span><b>{selectedGenre?.name ?? "Todos os gêneros"}</b><small>Ordenado por {selectedSort.toLowerCase()}</small></span>
+            <span className="catalog-controls-action">Alterar filtros</span>
+          </summary>
+          <div className="catalog-toolbar">
+            {showGenreBar && <GenreBar base={base} q={q} genre={genre} sort={sort} />}
+            <SortTabs base={base} q={q} genre={genre} sort={sort} />
+            {(q || genre || sort !== "recent") && <Link className="catalog-clear" href="/obras">Limpar filtros</Link>}
+          </div>
+        </details>
       )}
       {empty ?? (
         <div className="cover-grid">
           {visibleSeries.map((s) => (
             <article key={s.id} className="series-card">
               <Link href={`/obra/${s.slug}`} className="cover" aria-label={`Abrir ${s.title}`}>
-                <ResponsiveImage src={s.cover} alt="" />
+                <ResponsiveImage src={s.cover} alt={`Capa de ${s.title}`} />
               </Link>
               <Link href={`/obra/${s.slug}`} className="card-title">
                 {s.title}
@@ -218,7 +227,7 @@ export function SeriesGrid({
                     .map((slug) => {
                       const g = genreBySlug(slug);
                       return g ? (
-                        <Link key={g.slug} href={`/?genero=${g.slug}`} className="tag">
+                        <Link key={g.slug} href={`/genero/${g.slug}`} className="tag">
                           {g.name}
                         </Link>
                       ) : null;

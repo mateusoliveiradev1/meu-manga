@@ -48,7 +48,6 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
                 ))}
               </div>
             </details>
-            <NavLink href="/sobre">Sobre</NavLink>
           </nav>
           <div className="site-account">
             {user ? (

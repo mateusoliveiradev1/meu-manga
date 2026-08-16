@@ -50,7 +50,7 @@ for (const viewport of [
       const overflow = document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
       const text = document.body.innerText.trim().length;
       const distortedCovers = [...document.querySelectorAll(
-        ".featured-cover img, .series-card .cover img, .latest-cover img, .home-progress-card img, .profile-fav img, .obra-cover img, .ranking-cover img, .ranking-leader-cover img"
+        ".featured-cover img, .series-card .cover img, .latest-cover img, .home-progress-card img, .profile-fav img, .obra-cover img, .ranking-cover img, .ranking-leader-cover img, .ranking-curated-cover img, .starter-cover img"
       )]
         .map((image) => {
           const rect = image.getBoundingClientRect();

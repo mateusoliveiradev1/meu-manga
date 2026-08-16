@@ -619,6 +619,9 @@ function ChapterEnd({
         <Link href={backHref} className="btn ghost">
           Voltar à obra
         </Link>
+        <a href="#comentarios" className="btn ghost">
+          <IconChat size={16} /> Conversar sobre o capítulo
+        </a>
       </div>
       {supportUrl && (
         <a href={supportUrl} target="_blank" rel="noopener noreferrer" className="end-support">

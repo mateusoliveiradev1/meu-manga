@@ -18,6 +18,33 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function ContinueReading({ progress, inProgress }: { progress: Awaited<ReturnType<typeof getUserProgress>>; inProgress: number }) {
+  return (
+    <section className="section returning-reader" aria-label="Continuar lendo">
+      <div className="section-head">
+        <div className="section-head-title"><h2><IconBook size={18} /> De volta à sua estante</h2></div>
+        <span className="section-sub">{inProgress} {inProgress === 1 ? "leitura em andamento" : "leituras em andamento"}</span>
+      </div>
+      <p className="returning-reader-intro">Sua próxima página está pronta. Continue sem procurar novamente o capítulo em que parou.</p>
+      <div className="home-progress">
+        {progress.map((item) => {
+          const fraction = item.totalPages > 0 ? Math.min(1, Math.max(0, item.page / Math.max(1, item.totalPages - 1))) : 0;
+          const done = fraction >= 0.99;
+          return (
+            <Link key={item.chapterId} href={`/ler/${item.chapterId}`} className="home-progress-card">
+              <ResponsiveImage src={item.seriesCover} alt={`Capa de ${item.seriesTitle}`} sizes="4rem" />
+              <span className="hp-title">{item.seriesTitle}</span>
+              <span className="hp-ch">{chapterLabel(item.chapterNumber)}{item.chapterTitle ? ` — ${item.chapterTitle}` : ""}</span>
+              <span className="hp-track" aria-hidden="true"><span style={{ width: `${Math.round(fraction * 100)}%` }} /></span>
+              <span className="hp-foot"><span className="muted">{done ? "concluído" : `página ${item.page + 1} de ${item.totalPages}`}</span><span className="hp-go">{done ? "Reler" : "Continuar"} <IconArrowRight size={12} /></span></span>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   if (sp.q || sp.genero || sp.sort || sp.pagina) {
@@ -43,11 +70,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   return (
     <>
+      {progress.length > 0 && <ContinueReading progress={progress} inProgress={inProgress} />}
+
       {featured ? (
         <section className="featured" aria-label="História em destaque">
           <Link href={`/obra/${featured.slug}`} className="featured-cover" aria-label={`Conhecer ${featured.title}`}>
             <span className="featured-obi mono-num" aria-hidden="true">em destaque</span>
-            <ResponsiveImage src={featured.cover} alt="" sizes="(max-width: 720px) 11rem, 16rem" priority />
+            <ResponsiveImage src={featured.cover} alt={`Capa de ${featured.title}`} sizes="(max-width: 720px) 11rem, 16rem" priority />
           </Link>
           <div className="featured-body">
             {CATALOG_DEMO && <span className="demo-note">Catálogo em demonstração</span>}
@@ -77,30 +106,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </section>
       )}
 
-      {progress.length > 0 && (
-        <section className="section" aria-label="Continuar lendo">
-          <div className="section-head"><div className="section-head-title"><span className="section-idx mono-num">01</span><h2><IconBook size={18} /> Continue de onde parou</h2></div><span className="section-sub">{inProgress} {inProgress === 1 ? "leitura em andamento" : "leituras em andamento"}</span></div>
-          <div className="home-progress">
-            {progress.map((item) => {
-              const fraction = item.totalPages > 0 ? Math.min(1, Math.max(0, item.page / Math.max(1, item.totalPages - 1))) : 0;
-              const done = fraction >= 0.99;
-              return (
-                <Link key={item.chapterId} href={`/ler/${item.chapterId}`} className="home-progress-card">
-                  <ResponsiveImage src={item.seriesCover} alt="" sizes="4rem" />
-                  <span className="hp-title">{item.seriesTitle}</span>
-                  <span className="hp-ch">{chapterLabel(item.chapterNumber)}{item.chapterTitle ? ` — ${item.chapterTitle}` : ""}</span>
-                  <span className="hp-track" aria-hidden="true"><span style={{ width: `${Math.round(fraction * 100)}%` }} /></span>
-                  <span className="hp-foot"><span className="muted">{done ? "concluído" : `página ${item.page + 1} de ${item.totalPages}`}</span><span className="hp-go">{done ? "Reler" : "Continuar"} <IconArrowRight size={12} /></span></span>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
       {latestChapters.length > 0 && (
         <section className="section" aria-label="Capítulos recentes">
-          <div className="section-head"><div className="section-head-title"><span className="section-idx mono-num">{progress.length ? "02" : "01"}</span><h2>Acabaram de chegar</h2></div><Link href="/capitulos" className="section-link">Ver todos <IconArrowRight size={12} /></Link></div>
+          <div className="section-head"><div className="section-head-title"><h2>Acabaram de chegar</h2></div><Link href="/capitulos" className="section-link">Ver todos <IconArrowRight size={12} /></Link></div>
           <LatestStrip rows={latestChapters} />
         </section>
       )}
@@ -108,7 +116,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       {favorites.length > 0 && (
         <section className="section" aria-label="Sua estante">
           <div className="section-head"><h2><IconStar size={18} /> Sua estante</h2><Link href="/perfil" className="section-link">Abrir perfil <IconArrowRight size={12} /></Link></div>
-          <div className="favorite-shelf">{favorites.map((work) => <Link key={work.id} href={`/obra/${work.slug}`} className="profile-fav"><ResponsiveImage src={work.cover} alt="" sizes="6.5rem" /><span>{work.title}</span></Link>)}</div>
+          <div className="favorite-shelf">{favorites.map((work) => <Link key={work.id} href={`/obra/${work.slug}`} className="profile-fav"><ResponsiveImage src={work.cover} alt={`Capa de ${work.title}`} sizes="6.5rem" /><span>{work.title}</span></Link>)}</div>
         </section>
       )}
 
@@ -121,7 +129,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       {works.length > 0 && (
         <section className="section home-catalog-preview" aria-label="Descobrir obras">
-          <div className="section-head"><div className="section-head-title"><span className="section-idx mono-num">{progress.length ? "03" : "02"}</span><h2><IconCompass size={18} /> Descubra outra história</h2></div><Link href="/obras" className="section-link">Explorar catálogo <IconArrowRight size={12} /></Link></div>
+          <div className="section-head"><div className="section-head-title"><h2><IconCompass size={18} /> Descubra outra história</h2></div><Link href="/obras" className="section-link">Explorar catálogo <IconArrowRight size={12} /></Link></div>
           <SeriesGrid series={works.slice(0, 6)} showToolbar={false} showGenreBar={false} />
         </section>
       )}

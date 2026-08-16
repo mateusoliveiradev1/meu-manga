@@ -32,7 +32,7 @@ export function HitCounter({ value, label }: { value: number; label: string }) {
   return (
     <div>
       <span className="counter-label">{label}</span>
-      <span className="counter-display" aria-label={`${value.toLocaleString("pt-BR")} ${label}`}>
+      <span className="counter-display" aria-hidden="true">
         {digits.map((d, i) => (
           <span key={i} style={{ display: "inline-block", overflow: "hidden", height: "1em", verticalAlign: "top" }}>
             <span
@@ -52,6 +52,7 @@ export function HitCounter({ value, label }: { value: number; label: string }) {
           </span>
         ))}
       </span>
+      <span className="sr-only">{value.toLocaleString("pt-BR")} {label}</span>
     </div>
   );
 }
