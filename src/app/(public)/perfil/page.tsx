@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/features/auth/session";
-import { getProfileSettings, getUserFavorites, getUserProgress } from "@/features/catalog/queries";
+import { getProfileSettings, getPublicProfile, getUserLibrary, getUserProgress } from "@/features/catalog/queries";
 import { getCommentsByUser } from "@/features/comments/queries";
 import { CommentContent, DeleteComment } from "@/components/reader/comment-actions";
-import { IconArrowRight, IconBook, IconChat, IconEye, IconGear, IconStar } from "@/components/ui/icons";
+import { IconArrowRight, IconBell, IconBook, IconChat, IconEye, IconGear, IconHeart, IconStar, IconUsers } from "@/components/ui/icons";
 import { AccountSecurity } from "@/components/profile/account-security";
 import { ProfileSettings } from "@/components/profile/profile-settings";
 import { chapterLabel, formatDate, initials } from "@/lib/utils";
@@ -15,11 +15,12 @@ export default async function PerfilPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/entrar?next=%2Fperfil&motivo=perfil");
 
-  const [favs, progress, myComments, settings] = await Promise.all([
-    getUserFavorites(user.id),
+  const [favs, progress, myComments, settings, communityProfile] = await Promise.all([
+    getUserLibrary(user.id),
     getUserProgress(user.id),
     getCommentsByUser(user.id, 10),
     getProfileSettings(user.id),
+    getPublicProfile(user.id),
   ]);
 
   const createdAt = user.createdAt ? new Date(user.createdAt) : null;
@@ -55,13 +56,16 @@ export default async function PerfilPage() {
             </span>
           </div>
           <div className="profile-stat" role="listitem">
-            <span className="mono-num">{myComments.length}</span>
+            <span className="mono-num">{communityProfile?.commentCount ?? myComments.length}</span>
             <span className="stat-label">
               <IconChat size={12} /> comentários
             </span>
           </div>
+          <div className="profile-stat" role="listitem"><span className="mono-num">{communityProfile?.followerCount ?? 0}</span><span className="stat-label"><IconUsers size={12} /> seguidores</span></div>
+          <div className="profile-stat" role="listitem"><span className="mono-num">{communityProfile?.likeCount ?? 0}</span><span className="stat-label"><IconHeart size={12} /> curtidas</span></div>
         </div>
         <div className="profile-actions">
+          <Link href="/notificacoes" className="btn ghost small"><IconBell size={14} /> Notificações</Link>
           <Link href={`/leitores/${user.id}`} className="btn ghost small">
             <IconEye size={14} /> Perfil público
           </Link>
@@ -155,11 +159,12 @@ export default async function PerfilPage() {
           </div>
         ) : (
           <div className="row" style={{ gap: "0.9rem" }}>
-            {favs.map(({ s }) => (
+            {favs.map(({ s, unreadCount }) => (
               <Link key={s.id} href={`/obra/${s.slug}`} className="profile-fav">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={s.cover || "/samples/cover-farol.svg"} alt="" />
                 <span>{s.title}</span>
+                <small>{unreadCount > 0 ? `${unreadCount} ${unreadCount === 1 ? "capítulo não lido" : "capítulos não lidos"}` : "em dia"}</small>
               </Link>
             ))}
           </div>
@@ -207,7 +212,7 @@ export default async function PerfilPage() {
           </div>
         )}
       </section>
-      {settings && <ProfileSettings initial={{ name: settings.name, image: settings.image ?? "", favoritesPublic: settings.favoritesPublic, commentsPublic: settings.commentsPublic }} />}
+      {settings && <ProfileSettings initial={{ name: settings.name, image: settings.image ?? "", bio: settings.bio, favoriteGenre: settings.favoriteGenre, favoritesPublic: settings.favoritesPublic, commentsPublic: settings.commentsPublic }} />}
       <AccountSecurity canDelete={user.role !== "admin"} />
     </>
   );

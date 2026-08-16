@@ -5,9 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/auth/forms";
 import { SearchBox } from "@/components/catalog/search-box";
-import { IconBook, IconClose, IconCompass, IconGear, IconHome, IconMenu, IconUser } from "@/components/ui/icons";
+import { IconBell, IconBook, IconClose, IconCompass, IconGear, IconHome, IconMenu, IconUser, IconUsers } from "@/components/ui/icons";
 
-type MobileUser = { name: string; role: string } | null;
+type MobileUser = { name: string; role: string; unreadNotifications: number } | null;
 
 export function MobileNav({ user }: { user: MobileUser }) {
   const pathname = usePathname();
@@ -73,6 +73,7 @@ export function MobileNav({ user }: { user: MobileUser }) {
               <Link href="/"><IconHome size={18} /> Início</Link>
               <Link href="/obras"><IconCompass size={18} /> Explorar obras</Link>
               <Link href="/capitulos"><IconBook size={18} /> Capítulos recentes</Link>
+              <Link href="/comunidade"><IconUsers size={18} /> Comunidade</Link>
               <Link href="/generos">Todos os gêneros</Link>
               <Link href="/sobre">Sobre o estúdio</Link>
             </nav>
@@ -80,6 +81,7 @@ export function MobileNav({ user }: { user: MobileUser }) {
               {user ? (
                 <>
                   <Link href="/perfil"><IconUser size={18} /> {user.name}</Link>
+                  <Link href="/notificacoes"><IconBell size={18} /> Notificações {user.unreadNotifications > 0 && <span className="notification-nav-count">{user.unreadNotifications}</span>}</Link>
                   {user.role === "admin" && <Link href="/admin"><IconGear size={18} /> Painel do autor</Link>}
                   <LogoutButton />
                 </>

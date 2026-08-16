@@ -13,7 +13,7 @@ async function discoverPaths(page) {
       .filter((h) => h.startsWith("/obra/"))
   );
   const slug = hrefs[0]?.replace("/obra/", "") ?? "";
-  if (!slug) return [["home", "/"], ["login", "/entrar"], ["register", "/cadastro"]];
+  if (!slug) return [["home", "/"], ["community", "/comunidade"], ["login", "/entrar"], ["register", "/cadastro"]];
   await page.goto(BASE + "/obra/" + slug, { waitUntil: "load" });
   const chapterHref = await page.evaluate(() => {
     const a = document.querySelector("a[href^='/ler/']");
@@ -21,6 +21,7 @@ async function discoverPaths(page) {
   });
   return [
     ["home", "/"],
+    ["community", "/comunidade"],
     ["obra", "/obra/" + slug],
     ["reader", chapterHref ?? "/"],
     ["login", "/entrar"],

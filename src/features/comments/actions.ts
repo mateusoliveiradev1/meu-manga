@@ -3,8 +3,9 @@
 import { and, count, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db/client";
-import { chapters, commentReports, comments, series } from "@/db/schema";
+import { chapters, commentLikes, commentReports, comments, series } from "@/db/schema";
 import { getCurrentUser, requireAdmin, requireUser } from "@/features/auth/session";
+import { createNotification } from "@/features/notifications/create";
 import { checkRateLimits, getClientIp } from "@/lib/rate-limit";
 import { commentInputSchema, commentReportSchema, commentTargetSchema } from "@/lib/validation";
 
@@ -65,6 +66,107 @@ export async function addCommentAction(target: unknown, input: unknown): Promise
   const path = await commentTargetSlug(t);
   if (path) revalidatePath(path);
   return { ok: true, id: row.id };
+}
+
+export async function addReplyAction(parentId: number, input: unknown): Promise<ActionResult> {
+  const current = await requireUser();
+  const parsed = commentInputSchema.safeParse(input);
+  if (!Number.isInteger(parentId) || parentId <= 0 || !parsed.success) {
+    return { ok: false, error: parsed.success ? "Comentário inválido." : parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+  const [parent] = await db.select().from(comments).where(eq(comments.id, parentId)).limit(1);
+  if (!parent || parent.hidden) return { ok: false, error: "Esta conversa não está mais disponível." };
+  if (parent.parentId) return { ok: false, error: "Responda ao comentário principal para manter a conversa organizada." };
+
+  const ip = await getClientIp();
+  const limited = await checkRateLimits([
+    { key: `comment:user:${current.id}:1m`, ...COMMENT_LIMITS.perUserMinute },
+    { key: `comment:user:${current.id}:1h`, ...COMMENT_LIMITS.perUserHour },
+    { key: `comment:ip:${ip}:1h`, ...COMMENT_LIMITS.perIpHour },
+  ]);
+  if (!limited.ok) return { ok: false, error: `Espere ${limited.retryAfterSeconds} segundos antes de responder novamente.` };
+
+  const [row] = await db
+    .insert(comments)
+    .values({
+      chapterId: parent.chapterId,
+      seriesId: parent.seriesId,
+      parentId: parent.id,
+      userId: current.id,
+      content: parsed.data.content,
+      spoiler: parsed.data.spoiler,
+    })
+    .returning({ id: comments.id });
+  const path = await commentTargetSlug({ chapterId: parent.chapterId ?? undefined, seriesId: parent.seriesId ?? undefined });
+  if (path) revalidatePath(path);
+  revalidatePath("/comunidade");
+  await createNotification({
+    userId: parent.userId,
+    actorId: current.id,
+    type: "reply",
+    title: `${current.name} respondeu ao seu comentário`,
+    message: parsed.data.content,
+    href: `${path ?? "/comunidade"}#comentario-${parent.id}`,
+  });
+  return { ok: true, id: row.id };
+}
+
+export async function toggleCommentLikeAction(commentId: number) {
+  const current = await requireUser();
+  if (!Number.isInteger(commentId) || commentId <= 0) return { ok: false as const, error: "Comentário inválido." };
+  const [comment] = await db.select().from(comments).where(eq(comments.id, commentId)).limit(1);
+  if (!comment || comment.hidden) return { ok: false as const, error: "Comentário não encontrado." };
+  const [existing] = await db
+    .select()
+    .from(commentLikes)
+    .where(and(eq(commentLikes.commentId, commentId), eq(commentLikes.userId, current.id)))
+    .limit(1);
+  if (existing) {
+    await db.delete(commentLikes).where(and(eq(commentLikes.commentId, commentId), eq(commentLikes.userId, current.id)));
+  } else {
+    await db.insert(commentLikes).values({ commentId, userId: current.id });
+    const path = await commentTargetSlug({ chapterId: comment.chapterId ?? undefined, seriesId: comment.seriesId ?? undefined });
+    await createNotification({
+      userId: comment.userId,
+      actorId: current.id,
+      type: "like",
+      title: `${current.name} curtiu seu comentário`,
+      href: `${path ?? "/comunidade"}#comentario-${comment.parentId ?? comment.id}`,
+    });
+  }
+  const path = await commentTargetSlug({ chapterId: comment.chapterId ?? undefined, seriesId: comment.seriesId ?? undefined });
+  if (path) revalidatePath(path);
+  revalidatePath("/comunidade");
+  return { ok: true as const, liked: !existing };
+}
+
+export async function togglePinnedCommentAction(commentId: number) {
+  const admin = await requireAdmin();
+  const [comment] = await db.select().from(comments).where(eq(comments.id, commentId)).limit(1);
+  if (!comment || comment.hidden || comment.parentId) return { ok: false as const, error: "Comentário não encontrado." };
+  await db.transaction(async (tx) => {
+    if (!comment.pinned) {
+      const target = comment.chapterId
+        ? eq(comments.chapterId, comment.chapterId)
+        : eq(comments.seriesId, comment.seriesId!);
+      await tx.update(comments).set({ pinned: false }).where(target);
+    }
+    await tx.update(comments).set({ pinned: !comment.pinned }).where(eq(comments.id, commentId));
+  });
+  if (!comment.pinned) {
+    const path = await commentTargetSlug({ chapterId: comment.chapterId ?? undefined, seriesId: comment.seriesId ?? undefined });
+    await createNotification({
+      userId: comment.userId,
+      actorId: admin.id,
+      type: "pinned",
+      title: "O estúdio destacou seu comentário",
+      href: `${path ?? "/comunidade"}#comentario-${comment.id}`,
+    });
+  }
+  const path = await commentTargetSlug({ chapterId: comment.chapterId ?? undefined, seriesId: comment.seriesId ?? undefined });
+  if (path) revalidatePath(path);
+  revalidatePath("/comunidade");
+  return { ok: true as const, pinned: !comment.pinned };
 }
 
 export async function updateCommentAction(commentId: number, input: unknown): Promise<ActionResult> {

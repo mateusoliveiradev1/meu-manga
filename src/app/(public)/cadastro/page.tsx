@@ -20,7 +20,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
       <section className="auth-promise" aria-label="Benefícios da conta">
         <span className="auth-mark"><IconStar size={22} /></span>
         <h1>Monte uma estante que lembra de você</h1>
-        <p>A conta existe para servir à leitura: sincroniza seu progresso, reúne favoritas e libera avaliações e comentários.</p>
+        <p>A conta existe para servir à leitura: sincroniza seu progresso, reúne favoritas e conecta você às conversas da comunidade.</p>
         <ul><li><IconBook size={16} /> Ler continua livre</li><li><IconStar size={16} /> Seus dados ficam sob seu controle</li></ul>
       </section>
       <section className="manga-panel auth-box" aria-labelledby="register-title">

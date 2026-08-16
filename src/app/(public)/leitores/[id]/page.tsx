@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { IconArrowLeft, IconChat, IconStar } from "@/components/ui/icons";
-import { getPublicProfile, getUserFavorites } from "@/features/catalog/queries";
+import { IconArrowLeft, IconChat, IconHeart, IconStar, IconUsers } from "@/components/ui/icons";
+import { FollowButton } from "@/components/community/community-actions";
+import { getFollowState, getPublicProfile, getUserFavorites } from "@/features/catalog/queries";
+import { getCurrentUser } from "@/features/auth/session";
+import { authPath } from "@/lib/navigation";
 import { getCommentsByUser } from "@/features/comments/queries";
 import { chapterLabel, formatDate, formatNumber, initials } from "@/lib/utils";
 
@@ -18,10 +21,12 @@ export default async function ReaderProfilePage({ params }: { params: Promise<{ 
   const { id } = await params;
   const profile = await getPublicProfile(id);
   if (!profile) notFound();
+  const viewer = await getCurrentUser();
 
-  const [favs, comments] = await Promise.all([
+  const [favs, comments, following] = await Promise.all([
     profile.favoritesPublic ? getUserFavorites(id) : Promise.resolve([]),
     profile.commentsPublic ? getCommentsByUser(id, 20) : Promise.resolve([]),
+    getFollowState(viewer?.id, id),
   ]);
   const createdAt = profile.createdAt ? new Date(profile.createdAt) : null;
 
@@ -37,6 +42,7 @@ export default async function ReaderProfilePage({ params }: { params: Promise<{ 
         {profile.image ? <img className="profile-avatar profile-avatar-image" src={profile.image} alt="" /> : <span className="profile-avatar">{initials(profile.name)}</span>}
         <div style={{ minWidth: 0 }}>
           <div className="profile-name">{profile.name}</div>
+          {profile.bio && <p className="profile-bio">{profile.bio}</p>}
           <div className="row" style={{ marginTop: "0.55rem" }}>
             {profile.role === "admin" && (
               <span className="badge">
@@ -46,8 +52,12 @@ export default async function ReaderProfilePage({ params }: { params: Promise<{ 
             <span className="badge">{createdAt ? `membro desde ${formatDate(createdAt)}` : "membro"}</span>
             {profile.favoritesPublic && <span className="badge">{formatNumber(profile.favoriteCount)} favoritas</span>}
             {profile.commentsPublic && <span className="badge">{formatNumber(profile.commentCount)} comentários</span>}
+            {profile.favoriteGenre && <span className="badge">gosta de {profile.favoriteGenre}</span>}
+            <span className="badge"><IconUsers size={12} /> {formatNumber(profile.followerCount)} seguidores</span>
+            <span className="badge"><IconHeart size={12} /> {formatNumber(profile.likeCount)} curtidas recebidas</span>
           </div>
         </div>
+        {viewer?.id === id ? <Link className="btn ghost" href="/perfil">Editar meu perfil</Link> : viewer ? <FollowButton targetUserId={id} initialFollowing={following} /> : <Link className="btn" href={authPath("entrar", `/leitores/${id}`, "seguir")}>Entrar para acompanhar</Link>}
       </section>
 
       <section className="section" aria-label="Favoritas do leitor">

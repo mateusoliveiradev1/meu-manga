@@ -2,20 +2,21 @@ import Link from "next/link";
 import { requireAdmin } from "@/features/auth/session";
 import { getDailyViews, getOperationalMetrics, getSeriesList, getStats } from "@/features/catalog/queries";
 import { formatDate, formatNumber } from "@/lib/utils";
-import { IconArrowRight, IconBook, IconChat, IconEye, IconImage, IconPen } from "@/components/ui/icons";
+import { IconArrowRight, IconBook, IconChat, IconEye, IconHeart, IconImage, IconPen, IconUsers } from "@/components/ui/icons";
 import { DeleteButton } from "@/components/admin/forms";
-import { getOpenReportCount } from "@/features/comments/queries";
+import { getCommunityMetrics, getOpenReportCount } from "@/features/comments/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
-  const [stats, seriesList, daily, openReports, operations] = await Promise.all([
+  const [stats, seriesList, daily, openReports, operations, community] = await Promise.all([
     getStats(),
     getSeriesList(),
     getDailyViews(14),
     getOpenReportCount(),
     getOperationalMetrics(30),
+    getCommunityMetrics(30),
   ]);
   const maxViews = Math.max(1, ...daily.map((d) => d.views));
   const needsEditorial = seriesList.find((work) => !work.cover.trim() || work.synopsis.trim().length < 80);
@@ -43,6 +44,11 @@ export default async function AdminDashboardPage() {
       <section className="admin-focus" aria-labelledby="next-action-title">
         <div><span className="admin-focus-label">Próxima ação</span><h2 id="next-action-title">{nextAction.title}</h2><p>{nextAction.description}</p></div>
         <Link className="btn" href={nextAction.href}>{nextAction.label} <IconArrowRight size={14} /></Link>
+      </section>
+
+      <section className="section" aria-label="Comunidade">
+        <div className="section-head"><div><h2>Comunidade · 30 dias</h2><p className="section-description">Relações que indicam se a leitura está virando conversa.</p></div><Link href="/comunidade" className="section-link">Ver área pública <IconArrowRight size={12} /></Link></div>
+        <div className="community-admin-metrics"><div><IconUsers size={17} /><strong>{community.members}</strong><span>membros</span></div><div><IconChat size={17} /><strong>{community.recentActivity}</strong><span>mensagens recentes</span></div><div><IconHeart size={17} /><strong>{community.likes}</strong><span>curtidas</span></div><div><IconUsers size={17} /><strong>{community.follows}</strong><span>conexões</span></div></div>
       </section>
 
       <div className="stat-grid">

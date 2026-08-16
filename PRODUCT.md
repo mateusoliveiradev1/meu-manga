@@ -8,16 +8,16 @@ web
 
 ## Stack
 
-Next.js 16 + React 19 (App Router, TypeScript), estrutura modular em `src/` (features, db, components/ui). Banco **Postgres** gerenciado (Neon) via **Drizzle ORM** com migrações versionadas (`drizzle/`). Autenticação com **Better Auth** (email + senha, sessões, papéis `user`/`admin`). Uploads salvos no filesystem do servidor (`public/uploads/`).
+Next.js 16 + React 19 (App Router, TypeScript), estrutura modular em `src/` (features, db, components/ui). Banco **Postgres** gerenciado (Neon) via **Drizzle ORM** com migrações versionadas (`drizzle/`). Autenticação com **Better Auth** (email + senha, sessões, papéis `user`/`admin`). Imagens usam Cloudinary em produção, com suporte a storage compatível com S3/R2 e fallback local apenas em desenvolvimento.
 
 ## Users
 
 - **Autor (administrador):** publica e gerencia as obras. Cria mangas com ferramentas de IA e quer publicá-los com o mínimo de fricção. É identificado por email (`ADMIN_EMAIL`) — ao se cadastrar com esse email, vira admin automaticamente.
-- **Leitores (com conta):** criam conta com email e senha, navegam o catálogo, leem capítulos, comentam, favoritam obras e sincronizam progresso de leitura entre dispositivos.
+- **Leitores (com conta):** criam conta com email e senha, navegam o catálogo, leem capítulos, comentam, reagem, seguem outros leitores, favoritam obras e sincronizam progresso de leitura entre dispositivos.
 
 ## Product Purpose
 
-Webapp completo de publicação de mangas: um painel de publicação que torna postar capítulos rápido (upload de páginas ou colar URLs), e uma experiência de leitura imersiva para o público. Sucesso = o autor posta um capítulo em minutos e o leitor lê com conforto em qualquer dispositivo, com sua conta acompanhando favoritas e progresso.
+Webapp completo de publicação e comunidade de mangás: um painel que torna postar capítulos rápido (upload de páginas ou URLs), uma experiência de leitura imersiva e uma camada social que transforma cada capítulo em conversa. Sucesso = o autor publica em minutos e o leitor lê com conforto, volta quando há novidades e encontra pessoas com gostos próximos.
 
 ## Positioning
 
@@ -25,17 +25,19 @@ Publicação de mangas autogerida com cara de tankōbon: dark, moderna e modular
 
 ## Operating Context
 
-O autor gera páginas com IA, entra no painel administrativo protegido por papéis (Better Auth), cadastra séries (título, capa, sinopse, tags, status), cria capítulos e adiciona páginas por upload de arquivo ou URL de imagem. Leitores criam conta, navegam a home (catálogo), página da obra, e leem no leitor em tela cheia com navegação por clique/teclado/swipe. Progresso de leitura e favoritos ficam sincronizados na conta (com fallback em localStorage para visitantes anônimos). Comentários por capítulo exigem login.
+O autor entra no painel administrativo protegido por papéis (Better Auth), cadastra séries (título, capa, sinopse, gêneros e status), cria capítulos e adiciona páginas por upload de arquivo ou URL. Leitores criam conta, navegam pela home, catálogo e gêneros, leem em tela cheia por clique/teclado/swipe e participam de conversas nas obras e capítulos. Progresso, favoritas e preferências ficam sincronizados na conta, com fallback local de leitura para visitantes.
 
 ## Capabilities and Constraints
 
 - Autenticação completa com Better Auth: cadastro, login, logout, sessões com cookie, papel `admin` concedido pelo email em `ADMIN_EMAIL`.
 - CRUD de séries, capítulos e páginas (server actions com validação Zod); páginas por upload de arquivo ou URL.
-- Catálogo público (grade de capas, status, contagem de leituras), página de detalhes da obra, leitor full-screen com dois modos (página e rolagem) e navegação por teclado, clique e touch.
-- "Continuar lendo" e favoritos: sincronizados na conta (server) com fallback local para anônimos.
-- Comentários por capítulo, com autorização para apagar (dono ou admin).
-- Denúncias de comentários com fila de moderação, ocultação preventiva e restauração pelo autor.
-- Painel admin com dashboards de contadores (obras, capítulos, páginas, comentários, leituras), tráfego e prontidão editorial.
+- Catálogo público com busca, rotas canônicas de gênero, ordenação, página da obra e leitor full-screen nos modos rolagem, página e dupla, com teclado, clique, touch, zoom e restauração de posição.
+- "Continuar lendo", favoritas e contagem de capítulos não lidos sincronizados na conta, com fallback local para visitantes.
+- Comunidade pública com descoberta de perfis, biografia, gênero favorito, seguidores e atividade recente.
+- Conversas por obra e capítulo com respostas em dois níveis, curtidas, compartilhamento nativo/copiado e comentário fixado pelo autor.
+- Notificações internas para novos capítulos das obras favoritas, respostas, curtidas, seguidores e destaques; email continua opcional e só será ativado quando domínio/Resend existirem.
+- Denúncias com fila de moderação, ocultação preventiva e restauração pelo autor.
+- Painel admin com métricas editoriais, tráfego, atividade da comunidade, moderação e prontidão de publicação.
 - Operação de produção com Cloudinary, imagens responsivas, health check, logs estruturados, CI e backup criptografado diário.
 - Idioma do site: português (idioma do usuário).
 - O usuário não quer destacar que as obras são geradas por IA; o site não deve apresentar isso no copy público.
@@ -43,11 +45,11 @@ O autor gera páginas com IA, entra no painel administrativo protegido por papé
 
 ## Brand Commitments
 
-Sem nome de marca, logotipo ou assets confirmados. Voz: português. Constraint explícita: não divulgar "feito por IA" no copy público.
+Marca de produto: **Meu Mangá**, com símbolo amarelo e wordmark condensado. Voz: português, direta, editorial e acolhedora. Constraint explícita: não divulgar "feito por IA" no copy público.
 
 ## Evidence on Hand
 
-Nenhum conteúdo real (capas, páginas, textos) existe ainda. Trabalhos futuros não devem inventar claims comerciais (preços, métricas, parcerias).
+Há conteúdo de demonstração publicado e as obras definitivas estão em desenvolvimento pelo autor. Trabalhos futuros não devem substituir os mangás, nem inventar claims comerciais, preços, métricas ou parcerias.
 
 ## Product Principles
 
@@ -56,6 +58,7 @@ Nenhum conteúdo real (capas, páginas, textos) existe ainda. Trabalhos futuros 
 3. **Contas a serviço da leitura.** Login existe para sincronizar favoritas e progresso e para comentar — nada de paywall ou fricção.
 4. **Dados e código do autor.** Postgres próprio + estrutura modular; sem lock-in de terceiros no código ou nos dados.
 5. **Leitura mobile-first.** A maioria dos leitores estará no celular.
+6. **Comunidade sem ruído.** Relações e reações ajudam a conversa; não existe ranking de popularidade nem mecânica agressiva de engajamento.
 
 ## Accessibility & Inclusion
 

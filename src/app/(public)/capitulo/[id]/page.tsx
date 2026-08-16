@@ -4,11 +4,11 @@ import { notFound } from "next/navigation";
 import { getChapterWithSeriesAndPages } from "@/features/catalog/queries";
 import { getCommentsByChapter } from "@/features/comments/queries";
 import { CommentForm, ResumeNote } from "@/components/reader/reader";
-import { AuthorName } from "@/components/reader/comment-head";
-import { CommentContent, DeleteComment, ReportComment } from "@/components/reader/comment-actions";
+import { CommentThread } from "@/components/community/comment-thread";
+import { ShareButton } from "@/components/community/share-button";
 import { getCurrentUser } from "@/features/auth/session";
 import { absoluteUrl } from "@/lib/site";
-import { chapterLabel, formatDate, formatNumber, initials } from "@/lib/utils";
+import { chapterLabel, formatDate, formatNumber } from "@/lib/utils";
 import { IconArrowLeft, IconArrowRight, IconBook } from "@/components/ui/icons";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +40,8 @@ export default async function CapituloPage({ params }: { params: Promise<{ id: s
   if (!Number.isInteger(chapterId) || chapterId <= 0) notFound();
   const row = await getChapterWithSeriesAndPages(chapterId);
   if (!row) notFound();
-  const [user, comments] = await Promise.all([getCurrentUser(), getCommentsByChapter(row.id)]);
+  const user = await getCurrentUser();
+  const comments = await getCommentsByChapter(row.id, 100, user?.id);
 
   return (
     <>
@@ -66,6 +67,7 @@ export default async function CapituloPage({ params }: { params: Promise<{ id: s
           <Link className="btn ghost" href={`/obra/${row.series_slug}`}>
             Voltar à história
           </Link>
+          <ShareButton title={`${row.series_title} — ${chapterLabel(row.number)}`} text={row.title || undefined} />
         </div>
       </section>
 
@@ -101,23 +103,7 @@ export default async function CapituloPage({ params }: { params: Promise<{ id: s
             <p>Depois da leitura, volte aqui para contar o que mais chamou sua atenção.</p>
           </div>
         ) : (
-          <div className="stack">
-            {comments.map((c) => {
-              const mine = user ? c.userId === user.id || user.role === "admin" : false;
-              return (
-                <div key={c.id} className="manga-panel cm-entry">
-                  <div className="cm-head">
-                    <span className="cm-avatar">{initials(c.authorName)}</span>
-                    <AuthorName authorId={c.authorId} name={c.authorName} role={c.authorRole} />
-                    <span className="cm-date">{formatDate(c.createdAt)}</span>
-                    {mine && <DeleteComment commentId={c.id} />}
-                    {user && !mine && <ReportComment commentId={c.id} />}
-                  </div>
-                  <CommentContent commentId={c.id} content={c.content} spoiler={c.spoiler} edited={Boolean(c.editedAt)} canEdit={user?.id === c.userId} />
-                </div>
-              );
-            })}
-          </div>
+          <CommentThread comments={comments} viewer={user ? { id: user.id, role: user.role ?? "user" } : null} returnPath={`/capitulo/${row.id}`} />
         )}
       </section>
     </>

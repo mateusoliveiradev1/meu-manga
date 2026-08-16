@@ -1,4 +1,5 @@
 import {
+  AnyPgColumn,
   bigint,
   boolean,
   doublePrecision,
@@ -29,6 +30,8 @@ export const user = pgTable("user", {
   notifyNewChapters: boolean("notify_new_chapters").notNull().default(true),
   favoritesPublic: boolean("favorites_public").notNull().default(true),
   commentsPublic: boolean("comments_public").notNull().default(true),
+  bio: text("bio").notNull().default(""),
+  favoriteGenre: text("favorite_genre").notNull().default(""),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });
@@ -139,18 +142,73 @@ export const comments = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    parentId: integer("parent_id").references((): AnyPgColumn => comments.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
     spoiler: boolean("spoiler").notNull().default(false),
     editedAt: timestamp("edited_at"),
     hidden: boolean("hidden").notNull().default(false),
     moderatedAt: timestamp("moderated_at"),
     moderatedBy: text("moderated_by").references(() => user.id, { onDelete: "set null" }),
+    pinned: boolean("pinned").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [
     index("comments_chapter_idx").on(t.chapterId),
     index("comments_series_idx").on(t.seriesId),
+    index("comments_parent_idx").on(t.parentId),
     index("comments_hidden_idx").on(t.hidden),
+  ]
+);
+
+export const commentLikes = pgTable(
+  "comment_likes",
+  {
+    commentId: integer("comment_id")
+      .notNull()
+      .references(() => comments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.commentId, t.userId] }), index("comment_likes_user_idx").on(t.userId)]
+);
+
+export const userFollows = pgTable(
+  "user_follows",
+  {
+    followerId: text("follower_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    followingId: text("following_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.followerId, t.followingId] }),
+    index("user_follows_following_idx").on(t.followingId),
+  ]
+);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    actorId: text("actor_id").references(() => user.id, { onDelete: "set null" }),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    message: text("message").notNull().default(""),
+    href: text("href").notNull().default("/notificacoes"),
+    readAt: timestamp("read_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("notifications_user_created_idx").on(t.userId, t.createdAt),
+    index("notifications_user_read_idx").on(t.userId, t.readAt),
   ]
 );
 
@@ -280,4 +338,5 @@ export type Chapter = typeof chapters.$inferSelect;
 export type Page = typeof pages.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type CommentReport = typeof commentReports.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
 export type User = typeof user.$inferSelect;

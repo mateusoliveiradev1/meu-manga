@@ -10,6 +10,8 @@ import { requireUser } from "@/features/auth/session";
 const profileSchema = z.object({
   name: z.string().trim().min(2, "Use pelo menos 2 caracteres.").max(40, "Use no máximo 40 caracteres."),
   image: z.union([z.literal(""), z.string().url("Informe uma URL válida para o avatar.").max(500)]),
+  bio: z.string().trim().max(240, "Sua apresentação pode ter até 240 caracteres."),
+  favoriteGenre: z.string().trim().max(40),
   favoritesPublic: z.boolean(),
   commentsPublic: z.boolean(),
 });

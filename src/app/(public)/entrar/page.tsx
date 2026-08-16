@@ -14,6 +14,9 @@ const REASONS: Record<string, string> = {
   avaliacao: "Entre para registrar sua nota e voltar para esta obra.",
   perfil: "Entre para abrir sua estante e continuar de onde parou.",
   admin: "Entre com a conta do estúdio para acessar a bancada de publicação.",
+  comunidade: "Entre para participar da conversa e receber respostas dentro do site.",
+  notificacoes: "Entre para ver respostas, curtidas e novidades da sua estante.",
+  seguir: "Entre para acompanhar este leitor e não perder as próximas conversas.",
 };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; motivo?: string }> }) {

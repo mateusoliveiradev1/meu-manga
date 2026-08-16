@@ -85,6 +85,13 @@
       "when": 1786907583543,
       "tag": "0011_bouncy_triathlon",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1786913936481,
+      "tag": "0012_rich_kronos",
+      "breakpoints": true
     }
   ]
 }

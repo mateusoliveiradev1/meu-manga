@@ -1,6 +1,7 @@
 import { and, count, desc, eq, gt, gte, ilike, inArray, lt, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db/client";
-import { chapters, comments, pages, pageViews, readingStats, series, seriesRatings, user, userFavorites, userProgress } from "@/db/schema";
+import { chapters, commentLikes, comments, pages, pageViews, readingStats, series, seriesRatings, user, userFavorites, userFollows, userProgress } from "@/db/schema";
 import { publishDueChapters } from "@/features/catalog/publish";
 import { genresIn, hasGenre } from "@/lib/genres";
 
@@ -259,25 +260,70 @@ export async function getSeriesByIds(ids: number[]): Promise<typeof series.$infe
 
 export async function getPublicProfile(userId: string) {
   const [u] = await db
-    .select({ id: user.id, name: user.name, image: user.image, role: user.role, createdAt: user.createdAt, favoritesPublic: user.favoritesPublic, commentsPublic: user.commentsPublic })
+    .select({ id: user.id, name: user.name, image: user.image, role: user.role, createdAt: user.createdAt, favoritesPublic: user.favoritesPublic, commentsPublic: user.commentsPublic, bio: user.bio, favoriteGenre: user.favoriteGenre })
     .from(user)
     .where(eq(user.id, userId))
     .limit(1);
   if (!u) return undefined;
-  const [favs, cmts] = await Promise.all([
+  const [favs, cmts, followers, following, likes] = await Promise.all([
     db.select({ c: count() }).from(userFavorites).where(eq(userFavorites.userId, userId)),
     db.select({ c: count() }).from(comments).where(and(eq(comments.userId, userId), eq(comments.hidden, false))),
+    db.select({ c: count() }).from(userFollows).where(eq(userFollows.followingId, userId)),
+    db.select({ c: count() }).from(userFollows).where(eq(userFollows.followerId, userId)),
+    db
+      .select({ c: count() })
+      .from(commentLikes)
+      .innerJoin(comments, eq(comments.id, commentLikes.commentId))
+      .where(eq(comments.userId, userId)),
   ]);
-  return { ...u, favoriteCount: favs[0]?.c ?? 0, commentCount: cmts[0]?.c ?? 0 };
+  return { ...u, favoriteCount: favs[0]?.c ?? 0, commentCount: cmts[0]?.c ?? 0, followerCount: followers[0]?.c ?? 0, followingCount: following[0]?.c ?? 0, likeCount: likes[0]?.c ?? 0 };
 }
 
 export async function getProfileSettings(userId: string) {
   const [row] = await db
-    .select({ name: user.name, image: user.image, favoritesPublic: user.favoritesPublic, commentsPublic: user.commentsPublic })
+    .select({ name: user.name, image: user.image, favoritesPublic: user.favoritesPublic, commentsPublic: user.commentsPublic, bio: user.bio, favoriteGenre: user.favoriteGenre })
     .from(user)
     .where(eq(user.id, userId))
     .limit(1);
   return row;
+}
+
+export async function getFollowState(viewerId: string | undefined, targetUserId: string) {
+  if (!viewerId || viewerId === targetUserId) return false;
+  const [row] = await db
+    .select()
+    .from(userFollows)
+    .where(and(eq(userFollows.followerId, viewerId), eq(userFollows.followingId, targetUserId)))
+    .limit(1);
+  return Boolean(row);
+}
+
+export async function getCommunityMembers(limit = 8, viewerId?: string) {
+  const member = alias(user, "community_member");
+  // Drizzle intentionally strips table qualification from selected columns.
+  // Correlated subqueries need the alias kept explicit to avoid resolving `id`
+  // against their own integer tables (comments/comment_likes).
+  const memberId = sql.raw('"community_member"."id"');
+  const rows = await db
+    .select({
+      id: member.id,
+      name: member.name,
+      image: member.image,
+      role: member.role,
+      bio: member.bio,
+      favoriteGenre: member.favoriteGenre,
+      comments: sql<number>`(select count(*)::int from ${comments} c where c.user_id = ${memberId} and c.hidden = false)`,
+      followers: sql<number>`(select count(*)::int from ${userFollows} f where f.following_id = ${memberId})`,
+      likes: sql<number>`(select count(*)::int from ${commentLikes} l join ${comments} c on c.id = l.comment_id where c.user_id = ${memberId})`,
+      followedByViewer: viewerId
+        ? sql<boolean>`exists(select 1 from ${userFollows} f where f.follower_id = ${viewerId} and f.following_id = ${memberId})`
+        : sql<boolean>`false`,
+    })
+    .from(member)
+    .where(or(eq(member.role, "admin"), sql`${member.bio} <> ''`, sql`exists(select 1 from ${comments} c where c.user_id = ${member.id} and c.hidden = false)`))
+    .orderBy(desc(sql`(select count(*) from ${userFollows} f where f.following_id = ${member.id}) + (select count(*) from ${comments} c where c.user_id = ${member.id} and c.hidden = false)`))
+    .limit(limit);
+  return rows.map((row) => ({ ...row, comments: Number(row.comments), followers: Number(row.followers), likes: Number(row.likes), followedByViewer: Boolean(row.followedByViewer) }));
 }
 
 export async function getUserFavorites(userId: string) {
@@ -287,6 +333,29 @@ export async function getUserFavorites(userId: string) {
     .innerJoin(series, eq(series.id, userFavorites.seriesId))
     .where(eq(userFavorites.userId, userId))
     .orderBy(desc(userFavorites.createdAt));
+}
+
+export async function getUserLibrary(userId: string) {
+  const rows = await db
+    .select({
+      s: series,
+      chapterCount: sql<number>`(select count(*)::int from ${chapters} c where c.series_id = ${series.id} and c.published = true)`,
+      unreadCount: sql<number>`(
+        select count(*)::int from ${chapters} c
+        where c.series_id = ${series.id} and c.published = true
+          and not exists (
+            select 1 from ${userProgress} p
+            where p.user_id = ${userId} and p.chapter_id = c.id
+              and p.page >= greatest((select count(*) from ${pages} pg where pg.chapter_id = c.id) - 1, 0)
+          )
+      )`,
+      lastPublishedAt: sql<Date | null>`(select max(c.published_at) from ${chapters} c where c.series_id = ${series.id} and c.published = true)`,
+    })
+    .from(userFavorites)
+    .innerJoin(series, eq(series.id, userFavorites.seriesId))
+    .where(eq(userFavorites.userId, userId))
+    .orderBy(desc(userFavorites.createdAt));
+  return rows.map((row) => ({ ...row, chapterCount: Number(row.chapterCount), unreadCount: Number(row.unreadCount) }));
 }
 
 export type ProgressWithChapter = {

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommentForm, ResumeNote } from "@/components/reader/reader";
-import { CommentContent, DeleteComment, ReportComment } from "@/components/reader/comment-actions";
-import { AuthorName } from "@/components/reader/comment-head";
+import { CommentThread } from "@/components/community/comment-thread";
+import { ShareButton } from "@/components/community/share-button";
 import { FavoriteButton } from "@/components/favorites/favorite-button";
 import { RatingStars } from "@/components/ratings/rating-stars";
 import { GenreChips } from "@/components/catalog/genre-chips";
@@ -15,7 +15,7 @@ import { getChaptersBySeries, getPagesByChapter, getProgressForSeries, getRelate
 import { getCommentsBySeries } from "@/features/comments/queries";
 import { genresIn } from "@/lib/genres";
 import { absoluteUrl } from "@/lib/site";
-import { chapterLabel, formatDate, formatNumber, initials } from "@/lib/utils";
+import { chapterLabel, formatDate, formatNumber } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +52,7 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
 
   const [chapters, seriesComments, rating, related] = await Promise.all([
     getChaptersBySeries(series.id, true),
-    getCommentsBySeries(series.id),
+    getCommentsBySeries(series.id, 100, user?.id),
     getSeriesRating(series.id, user?.id),
     getRelatedSeries(series.id, series.tags),
   ]);
@@ -108,6 +108,7 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
               <span className="muted">O primeiro capítulo está em produção.</span>
             )}
             <FavoriteButton seriesId={series.id} title={series.title} initial={series.favorite} />
+            <ShareButton title={series.title} text={series.synopsis.slice(0, 120)} />
           </div>
           <RatingStars seriesId={series.id} avg={rating.avg} count={rating.count} mine={rating.mine} />
         </div>
@@ -216,23 +217,7 @@ export default async function ObraPage({ params }: { params: Promise<{ slug: str
         {seriesComments.length === 0 ? (
           <p className="cm-login-hint">Nenhum comentário sobre a obra ainda. Seja a primeira pessoa a comentar!</p>
         ) : (
-          <div className="stack">
-            {seriesComments.map((c) => {
-              const mine = user ? c.userId === user.id || user.role === "admin" : false;
-              return (
-                <div key={c.id} className="manga-panel cm-entry">
-                  <div className="cm-head">
-                    <span className="cm-avatar">{initials(c.authorName)}</span>
-                    <AuthorName authorId={c.authorId} name={c.authorName} role={c.authorRole} />
-                    <span className="cm-date">{formatDate(c.createdAt)}</span>
-                    {mine && <DeleteComment commentId={c.id} />}
-                    {user && !mine && <ReportComment commentId={c.id} />}
-                  </div>
-                  <CommentContent commentId={c.id} content={c.content} spoiler={c.spoiler} edited={Boolean(c.editedAt)} canEdit={user?.id === c.userId} />
-                </div>
-              );
-            })}
-          </div>
+          <CommentThread comments={seriesComments} viewer={user ? { id: user.id, role: user.role ?? "user" } : null} returnPath={`/obra/${series.slug}`} />
         )}
 
         <CommentForm seriesId={series.id} />

@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommentForm, Reader } from "@/components/reader/reader";
-import { CommentContent, DeleteComment, ReportComment } from "@/components/reader/comment-actions";
-import { AuthorName } from "@/components/reader/comment-head";
+import { CommentThread } from "@/components/community/comment-thread";
 import { IconChat } from "@/components/ui/icons";
 import { getCurrentUser } from "@/features/auth/session";
 import { getChapterProgress, getChapterWithSeries, getPagesByChapter, getPrevNextChapter } from "@/features/catalog/queries";
 import { getCommentsByChapter } from "@/features/comments/queries";
 import { absoluteUrl } from "@/lib/site";
-import { chapterLabel, formatDate, initials } from "@/lib/utils";
+import { chapterLabel, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +55,7 @@ export default async function ReaderPage({
 
   const [pages, comments, { prev, next }] = await Promise.all([
     getPagesByChapter(chapter.id),
-    getCommentsByChapter(chapter.id),
+    getCommentsByChapter(chapter.id, 100, user?.id),
     getPrevNextChapter(chapter.series_id, chapter.number),
   ]);
   const progress = user ? await getChapterProgress(chapter.id, user.id) : null;
@@ -123,21 +122,7 @@ export default async function ReaderPage({
         {comments.length === 0 ? (
           <p className="cm-login-hint">Nenhum comentário ainda. Seja a primeira pessoa a comentar!</p>
         ) : (
-          comments.map((c) => {
-            const mine = user ? c.userId === user.id || user.role === "admin" : false;
-            return (
-              <div key={c.id} className="manga-panel cm-entry">
-                <div className="cm-head">
-                  <span className="cm-avatar">{initials(c.authorName)}</span>
-                  <AuthorName authorId={c.authorId} name={c.authorName} role={c.authorRole} />
-                  <span className="cm-date">{formatDate(c.createdAt)}</span>
-                  {mine && <DeleteComment commentId={c.id} />}
-                  {user && !mine && <ReportComment commentId={c.id} />}
-                </div>
-                <CommentContent commentId={c.id} content={c.content} spoiler={c.spoiler} edited={Boolean(c.editedAt)} canEdit={user?.id === c.userId} />
-              </div>
-            );
-          })
+          <CommentThread comments={comments} viewer={user ? { id: user.id, role: user.role ?? "user" } : null} returnPath={`/ler/${chapter.id}`} />
         )}
 
         <CommentForm chapterId={chapter.id} />

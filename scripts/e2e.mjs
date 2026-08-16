@@ -277,11 +277,37 @@ try {
     await readerPage.waitForURL(BASE + "/", { timeout: 15000 });
     await readerPage.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
     const reportedEntry = readerPage.locator(".cm-entry", { hasText: chapterCommentText });
-    await reportedEntry.locator('button:has-text("Denunciar")').click();
-    await reportedEntry.locator("select").selectOption("spam");
-    await reportedEntry.locator('button:has-text("Enviar denúncia")').click();
+    await reportedEntry.locator('button:has-text("Curtir")').click();
+    await reportedEntry.locator('button:has-text("Responder")').click();
+    const replyText = `Resposta E2E ${Date.now()}`;
+    await reportedEntry.locator(".reply-form textarea").fill(replyText);
+    await reportedEntry.locator('button:has-text("Publicar resposta")').click();
     await readerPage.waitForTimeout(800);
-    check("leitor envia denúncia", (await reportedEntry.textContent()).includes("Denúncia enviada"));
+    check("leitor curte e responde comentário", (await reportedEntry.textContent()).includes(replyText));
+
+    const authorHref = await reportedEntry.locator("a.cm-name").first().getAttribute("href");
+    await readerPage.goto(BASE + authorHref, { waitUntil: "load" });
+    await readerPage.click('button:has-text("Acompanhar leitor")');
+    await readerPage.waitForTimeout(600);
+    check("leitor acompanha outro perfil", (await readerPage.content()).includes("Acompanhando"));
+
+    await page.goto(BASE + "/notificacoes", { waitUntil: "load" });
+    const notificationsHtml = await page.content();
+    check("notificações internas recebem resposta, curtida e seguidor", notificationsHtml.includes("Leitor Moderacao") && notificationsHtml.includes("respondeu"));
+
+    await page.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
+    const authorEntry = page.locator(".cm-entry", { hasText: chapterCommentText });
+    await authorEntry.locator('button:has-text("Destacar")').click();
+    await page.waitForTimeout(700);
+    check("autor destaca comentário", (await authorEntry.textContent()).includes("destacado pelo estúdio"));
+
+    await readerPage.goto(BASE + "/ler/" + TEST_CHAPTER_ID, { waitUntil: "load" });
+    const reportEntry = readerPage.locator(".cm-entry", { hasText: chapterCommentText });
+    await reportEntry.locator('button:has-text("Denunciar")').click();
+    await reportEntry.locator("select").selectOption("spam");
+    await reportEntry.locator('button:has-text("Enviar denúncia")').click();
+    await readerPage.waitForTimeout(800);
+    check("leitor envia denúncia", (await reportEntry.textContent()).includes("Denúncia enviada"));
 
     await page.goto(BASE + "/admin/comentarios", { waitUntil: "load" });
     const moderationEntry = page.locator(".moderation-entry", { hasText: chapterCommentText });

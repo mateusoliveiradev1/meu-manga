@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { IconArrowRight, IconBook, IconCompass, IconStar } from "@/components/ui/icons";
+import { IconArrowRight, IconBook, IconChat, IconCompass, IconHeart, IconStar } from "@/components/ui/icons";
 import { StatusBadge } from "@/components/ui/bits";
 import { GenreChips } from "@/components/catalog/genre-chips";
 import { SeriesGrid } from "@/components/catalog/series-grid";
 import { LatestStrip } from "@/components/catalog/latest-strip";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { getCurrentUser } from "@/features/auth/session";
+import { getLatestComments } from "@/features/comments/queries";
 import { getChaptersBySeries, getFavoritedSeriesIds, getLatestChapters, getSeriesByIds, getSeriesList, getUserProgress } from "@/features/catalog/queries";
-import { chapterLabel, formatDate, formatNumber } from "@/lib/utils";
+import { chapterLabel, formatDate, formatNumber, initials } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 const CATALOG_DEMO = process.env.NEXT_PUBLIC_CATALOG_DEMO !== "false";
@@ -37,6 +38,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     ? await Promise.all([getFavoritedSeriesIds(user.id), getUserProgress(user.id, 4)])
     : [null, []];
   const favorites = favoriteIds?.length ? await getSeriesByIds(favoriteIds.slice(0, 5)) : [];
+  const community = await getLatestComments(3, user?.id);
   const inProgress = progress.filter((item) => item.totalPages > 0 && item.page < item.totalPages - 1).length;
 
   return (
@@ -107,6 +109,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <section className="section" aria-label="Sua estante">
           <div className="section-head"><h2><IconStar size={18} /> Sua estante</h2><Link href="/perfil" className="section-link">Abrir perfil <IconArrowRight size={12} /></Link></div>
           <div className="favorite-shelf">{favorites.map((work) => <Link key={work.id} href={`/obra/${work.slug}`} className="profile-fav"><ResponsiveImage src={work.cover} alt="" sizes="6.5rem" /><span>{work.title}</span></Link>)}</div>
+        </section>
+      )}
+
+      {community.length > 0 && (
+        <section className="section home-community" aria-label="Conversas da comunidade">
+          <div className="section-head"><div className="section-head-title"><h2><IconChat size={18} /> A conversa continua</h2></div><Link href="/comunidade" className="section-link">Abrir comunidade <IconArrowRight size={12} /></Link></div>
+          <div className="home-community-grid">{community.map((comment) => { const href = comment.chapterId != null ? `/capitulo/${comment.chapterId}#comentario-${comment.id}` : `/obra/${comment.seriesSlug}#comentario-${comment.id}`; return <Link key={comment.id} href={href} className="manga-panel community-teaser"><span className="cm-avatar">{initials(comment.authorName)}</span><span className="community-teaser-copy"><strong>{comment.authorName}</strong><span>{comment.spoiler ? "Deixou uma impressão com spoiler protegido." : comment.content}</span><small>em {comment.seriesTitle}{comment.chapterNumber != null ? ` — ${chapterLabel(comment.chapterNumber)}` : ""}</small></span><span className="community-teaser-signal"><IconHeart size={12} /> {comment.likeCount}</span></Link>; })}</div>
         </section>
       )}
 

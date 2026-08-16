@@ -3,7 +3,7 @@ import { PageView } from "@/components/analytics/pageview";
 import { HitCounter } from "@/components/ui/counter";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LogoutButton } from "@/components/auth/forms";
-import { IconGear, IconUser } from "@/components/ui/icons";
+import { IconBell, IconGear, IconUser, IconUsers } from "@/components/ui/icons";
 import { SiteLogo } from "@/components/ui/logo";
 import { NavLink } from "@/components/ui/nav-link";
 import { SearchBox } from "@/components/catalog/search-box";
@@ -11,6 +11,7 @@ import { MobileNav } from "@/components/ui/mobile-nav";
 import { PwaControls } from "@/components/pwa/pwa-controls";
 import { getCurrentUser } from "@/features/auth/session";
 import { getLatestPublishedAt, getStats } from "@/features/catalog/queries";
+import { getUnreadNotificationCount } from "@/features/notifications/queries";
 import { GENRES } from "@/lib/genres";
 import { formatDate } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const [user, stats, lastPublished] = await Promise.all([getCurrentUser(), getStats(), getLatestPublishedAt()]);
+  const unreadNotifications = user ? await getUnreadNotificationCount(user.id) : 0;
 
   return (
     <div className="shell">
@@ -33,6 +35,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           <nav className="site-nav" aria-label="Navegação principal">
             <NavLink href="/" exact>Início</NavLink>
             <NavLink href="/obras">Obras</NavLink>
+            <NavLink href="/comunidade"><IconUsers size={13} /> Comunidade</NavLink>
             <details className="genre-drop">
               <summary>Gêneros</summary>
               <div className="genre-drop-panel">
@@ -47,6 +50,9 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             <NavLink href="/sobre">Sobre</NavLink>
             {user ? (
               <>
+                <NavLink href="/notificacoes" className="notification-nav-link" aria-label={unreadNotifications ? `${unreadNotifications} notificações não lidas` : "Notificações"}>
+                  <IconBell size={14} /> {unreadNotifications > 0 && <span className="notification-nav-count">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}
+                </NavLink>
                 <NavLink href="/perfil" className="nav-btn nav-user">
                   <IconUser size={13} /> {user.name}
                 </NavLink>
@@ -67,7 +73,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             )}
           </nav>
           <ThemeToggle />
-          <MobileNav user={user ? { name: user.name, role: user.role ?? "user" } : null} />
+          <MobileNav user={user ? { name: user.name, role: user.role ?? "user", unreadNotifications } : null} />
         </div>
       </header>
 
@@ -90,6 +96,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             <Link href="/obras">Explorar obras</Link>
             <Link href="/capitulos">Capítulos</Link>
             <Link href="/generos">Gêneros</Link>
+            <Link href="/comunidade">Comunidade</Link>
             <Link href="/sobre">Sobre o estúdio</Link>
             <Link href="/privacidade">Privacidade & termos</Link>
             {user ? (

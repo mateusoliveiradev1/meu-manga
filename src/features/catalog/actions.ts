@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { chapters, pages, series } from "@/db/schema";
 import { requireAdmin } from "@/features/auth/session";
+import { dispatchChapterNotifications } from "@/features/catalog/publish";
 import { chapterInputSchema, pagesInputSchema, seriesInputSchema } from "@/lib/validation";
 import { slugify } from "@/lib/utils";
 
@@ -87,6 +88,9 @@ export async function createChapterAction(seriesId: number, input: unknown): Pro
     .update(series)
     .set({ updatedAt: new Date() })
     .where(eq(series.id, seriesId));
+  if (!scheduled && published) {
+    await dispatchChapterNotifications([{ id: row.id, seriesId, number, title }]);
+  }
   return { ok: true, id: row.id };
 }
 
@@ -110,6 +114,9 @@ export async function updateChapterAction(id: number, input: unknown): Promise<A
       publishAt: scheduled ? publishAt : published ? null : publishAt,
     })
     .where(eq(chapters.id, id));
+  if (!scheduled && published && !wasPublished && cur[0]) {
+    await dispatchChapterNotifications([{ id, seriesId: cur[0].seriesId, number, title }]);
+  }
   return { ok: true, id };
 }
 

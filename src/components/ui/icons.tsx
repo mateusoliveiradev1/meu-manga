@@ -250,3 +250,27 @@ export function IconCompass(props: IconProps) {
     </svg>
   );
 }
+
+export function IconBell(props: IconProps) {
+  return <svg {...base(props)}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></svg>;
+}
+
+export function IconHeart(props: IconProps) {
+  return <svg {...base(props)}><path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8z" /></svg>;
+}
+
+export function IconReply(props: IconProps) {
+  return <svg {...base(props)}><path d="M9 17l-5-5 5-5" /><path d="M4 12h9a7 7 0 0 1 7 7" /></svg>;
+}
+
+export function IconPin(props: IconProps) {
+  return <svg {...base(props)}><path d="M12 17v5" /><path d="M6 17h12l-3-4V6l2-2H7l2 2v7l-3 4z" /></svg>;
+}
+
+export function IconUsers(props: IconProps) {
+  return <svg {...base(props)}><circle cx="9" cy="8" r="3" /><path d="M3 19c.8-3.2 2.8-5 6-5s5.2 1.8 6 5" /><path d="M16 5a3 3 0 0 1 0 6M17 14c2.2.5 3.5 2.2 4 5" /></svg>;
+}
+
+export function IconCheckAll(props: IconProps) {
+  return <svg {...base(props)}><path d="m2 12 4 4L16 6" /><path d="m10 15 2 2 10-10" /></svg>;
+}

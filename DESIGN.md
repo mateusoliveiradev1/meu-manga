@@ -185,8 +185,9 @@ Cantos de plataforma: cards e painéis 12px, banner 16px, botões 10px, campos 1
 
 ### Navigation
 - **Barra do site:** fundo blur, borda inferior 1px; links claros (não amarelos) com hover de superfície; o nome do leitor logado é um link para `/perfil`.
-- **Busca no header:** campo pill compacto com ícone de lupa à direita; no mobile vira linha própria (100% de largura) sob a marca. O envio faz GET para `/?q=…`, que filtra a grade por título/sinopse/tags.
-- **Gêneros:** dropdown `details/summary` (sem JS) com a lista canônica de gêneros (`src/lib/genres.ts`), cada um linkando para `/?genero=slug`; a home também tem a barra de filtro com chip ativo em amarelo. Obras marcam gêneros por chips no painel (tags livres continuam válidas).
+- **Busca no header:** campo pill compacto com ícone de lupa à direita; no mobile vive dentro do menu em bottom sheet. O envio faz GET para `/obras?q=…`, preservando uma única rota canônica de descoberta.
+- **Gêneros:** dropdown `details/summary` (sem JS) com a lista canônica de gêneros (`src/lib/genres.ts`), cada um linkando para `/genero/[slug]`; obras marcam gêneros por chips no painel e tags livres continuam válidas.
+- **Comunidade:** item de primeiro nível no desktop e no menu mobile. Usuários autenticados recebem sino com contador não lido; perfis e nomes de comentários são sempre clicáveis.
 - **Marca:** painel amarelo com o slash inclinado (o "volume" da marca); inclina -6° no hover.
 - **Barra do leitor:** compacta, escura; Ampliar · Página · Rolagem.
 
@@ -210,6 +211,9 @@ Superfície mais escura do site: a página de manga flutua sobre o vazio (#05050
 - **Painel do autor**: gráfico de leituras por dia (14 dias) em barras amarelas sobre painel (valores em mono) + contadores; abas de ordenação seguem o mesmo token de chip ativo.
 - **Pré-visualização**: banner discreto "Prévia do autor" (borda amarela em fundo amarelo 12%) quando o admin lê um capítulo rascunho via `?preview=1`.
 - **Comunidade**: nome do autor de comentário vira link para o perfil público (`/leitores/[id]`); o autor do estúdio ganha badge "autor" (amarelo, discreto) ao lado do nome.
+- **Central da comunidade** (`/comunidade`): hero editorial assimétrico, descoberta de pessoas e feed de conversas. A tela evita ranking; contadores existem para dar contexto, não para produzir competição.
+- **Ações sociais**: curtir, responder, seguir e compartilhar usam controles compactos com ícones de traço; respostas ficam visualmente aninhadas em um único nível e o comentário fixado recebe tratamento editorial discreto.
+- **Notificações** (`/notificacoes`): agrupamento cronológico legível, estado lido/não lido, ações de marcar uma ou todas e links diretos ao contexto.
 - **Moderação**: leitores autenticados denunciam em um formulário inline discreto; o painel mostra denúncias abertas primeiro e permite ocultar/restaurar sem apagar o histórico.
 - **Perfis públicos**: mesma linguagem do perfil próprio (avatar, badges) com favoritas + comentários recentes, sem dados privados.
 - **SEO**: `og:image` com a capa por obra/capítulo, JSON-LD `ComicSeries`/`ComicIssue`, `sitemap.xml`, `robots.txt` e feed `rss.xml`.
