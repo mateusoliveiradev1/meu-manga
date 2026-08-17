@@ -8,6 +8,7 @@ import { SiteLogo } from "@/components/ui/logo";
 import { NavLink } from "@/components/ui/nav-link";
 import { SearchBox } from "@/components/catalog/search-box";
 import { MobileNav } from "@/components/ui/mobile-nav";
+import { DetailsMenu } from "@/components/ui/details-menu";
 import { PwaControls } from "@/components/pwa/pwa-controls";
 import { getCurrentUser } from "@/features/auth/session";
 import { getLatestPublishedAt, getStats } from "@/features/catalog/queries";
@@ -37,7 +38,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             <NavLink href="/obras">Obras</NavLink>
             <NavLink href="/ranking"><IconTrophy size={13} /> Ranking</NavLink>
             <NavLink href="/comunidade"><IconUsers size={13} /> Comunidade</NavLink>
-            <details className="genre-drop">
+            <DetailsMenu className="genre-drop">
               <summary>Gêneros</summary>
               <div className="genre-drop-panel">
                 <Link href="/generos" className="genre-all-link">Todos os gêneros</Link>
@@ -47,7 +48,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
                   </Link>
                 ))}
               </div>
-            </details>
+            </DetailsMenu>
           </nav>
           <div className="site-account">
             {user ? (
@@ -55,7 +56,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
                 <NavLink href="/notificacoes" className="notification-nav-link" aria-label={unreadNotifications ? `${unreadNotifications} notificações não lidas` : "Notificações"}>
                   <IconBell size={15} /> {unreadNotifications > 0 && <span className="notification-nav-count">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}
                 </NavLink>
-                <details className="account-drop">
+                <DetailsMenu className="account-drop">
                   <summary><IconUser size={14} /><span>{user.name}</span></summary>
                   <div className="account-drop-panel">
                     <Link href="/perfil"><IconUser size={15} /> Meu perfil</Link>
@@ -65,7 +66,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
                     {user.role === "admin" && <Link href="/admin"><IconGear size={15} /> Painel do autor</Link>}
                     <LogoutButton className="account-menu-logout" />
                   </div>
-                </details>
+                </DetailsMenu>
               </>
             ) : (
               <>
