@@ -3,7 +3,7 @@ import { BulkPublishPanel } from "@/components/admin/editorial-tools";
 import { IconCalendar } from "@/components/ui/icons";
 import { requireAdmin } from "@/features/auth/session";
 import { getEditorialCalendar } from "@/features/editorial/queries";
-import { chapterLabel, formatDate } from "@/lib/utils";
+import { chapterLabel, formatDate, formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +34,9 @@ export default async function EditorialCalendarPage() {
         <section className="editorial-timeline" aria-labelledby="agenda-title">
           <div className="section-head compact"><h2 id="agenda-title">Próximas publicações</h2></div>
           {scheduled.length ? scheduled.map((chapter) => (
-            <article key={chapter.id} className="timeline-row">
-              <time dateTime={chapter.publishAt?.toISOString()}>{formatDate(chapter.publishAt)}</time>
-              <span><strong>{chapter.seriesTitle}</strong><small>{chapterLabel(chapter.number)}{chapter.title ? ` — ${chapter.title}` : ""}</small></span>
+            <article key={chapter.id} className={`timeline-row${chapter.blockers.length ? " is-blocked" : ""}`}>
+              <time dateTime={chapter.publishAt?.toISOString()}>{formatDateTime(chapter.publishAt)}</time>
+              <span><strong>{chapter.seriesTitle}</strong><small>{chapter.seriesStatus === "planned" ? "Estreia da obra · " : "Novo capítulo · "}{chapterLabel(chapter.number)}{chapter.title ? ` — ${chapter.title}` : ""}</small>{chapter.blockers.length > 0 && <small className="qa-blocker">Publicação protegida: {chapter.blockers.join(" · ")}</small>}</span>
               <Link href={`/admin/capitulos/${chapter.id}/editar`} className="text-link">Revisar →</Link>
             </article>
           )) : <p className="muted editorial-empty">Nenhum capítulo agendado. Você pode definir uma data ao editar um capítulo.</p>}

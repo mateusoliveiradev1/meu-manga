@@ -4,7 +4,7 @@ import { DeleteButton, DuplicateChapterButton } from "@/components/admin/forms";
 import { IconArrowRight, IconPlus } from "@/components/ui/icons";
 import { requireAdmin } from "@/features/auth/session";
 import { getChaptersBySeries, getSeriesById } from "@/features/catalog/queries";
-import { chapterLabel, formatDate, formatNumber } from "@/lib/utils";
+import { chapterLabel, formatDate, formatDateTime, formatNumber } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +67,7 @@ export default async function SeriesChaptersPage({ params }: { params: Promise<{
                     {c.published ? (
                       <span className="ok">publicado</span>
                     ) : c.publishAt ? (
-                      <span className="scheduled-status">agendado · {formatDate(c.publishAt)}</span>
+                      <span className="scheduled-status">agendado · {formatDateTime(c.publishAt)} BRT</span>
                     ) : (
                       <span className="muted">rascunho</span>
                     )}

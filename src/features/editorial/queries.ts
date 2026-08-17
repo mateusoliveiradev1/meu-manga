@@ -7,6 +7,7 @@ export type EditorialChapter = {
   seriesId: number;
   seriesTitle: string;
   seriesSlug: string;
+  seriesStatus: string;
   number: number;
   title: string;
   published: boolean;
@@ -25,6 +26,7 @@ export async function getEditorialCalendar(): Promise<EditorialChapter[]> {
       seriesId: chapters.seriesId,
       seriesTitle: series.title,
       seriesSlug: series.slug,
+      seriesStatus: series.status,
       number: chapters.number,
       title: chapters.title,
       published: chapters.published,

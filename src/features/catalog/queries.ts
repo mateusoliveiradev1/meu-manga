@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gt, gte, ilike, inArray, lt, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, gte, ilike, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db/client";
 import { chapters, commentLikes, comments, pages, pageViews, readingStats, series, seriesRatings, user, userFavorites, userFollows, userProgress } from "@/db/schema";
@@ -242,6 +242,51 @@ export async function getLatestPublishedAt(): Promise<Date | null> {
     .from(chapters)
     .where(eq(chapters.published, true));
   return row[0]?.m ?? null;
+}
+
+/** Próximo capítulo pronto e agendado, usado como chamada editorial na home. */
+export async function getNextScheduledChapter() {
+  await publishDueChapters();
+  const scheduled = await db
+    .select({
+      id: chapters.id,
+      number: chapters.number,
+      title: chapters.title,
+      publishAt: chapters.publishAt,
+      seriesId: series.id,
+      seriesSlug: series.slug,
+      seriesTitle: series.title,
+      seriesCover: series.cover,
+      seriesStatus: series.status,
+      publishedChapterCount: sql<number>`(select count(*)::int from ${chapters} published_chapter where published_chapter.series_id = ${series.id} and published_chapter.published = true)`,
+    })
+    .from(chapters)
+    .innerJoin(series, eq(series.id, chapters.seriesId))
+    .where(and(eq(chapters.published, false), isNotNull(chapters.publishAt), gt(chapters.publishAt, new Date())))
+    .orderBy(asc(chapters.publishAt))
+    .limit(12);
+  if (!scheduled.length) return null;
+
+  const scheduledIds = scheduled.map((chapter) => chapter.id);
+  const pageRows = await db
+    .select({ chapterId: pages.chapterId, position: pages.position, src: pages.src })
+    .from(pages)
+    .where(inArray(pages.chapterId, scheduledIds));
+  const grouped = new Map<number, { position: number; src: string }[]>();
+  for (const page of pageRows) {
+    const current = grouped.get(page.chapterId) ?? [];
+    current.push({ position: page.position, src: page.src.trim() });
+    grouped.set(page.chapterId, current);
+  }
+
+  const ready = scheduled.find((chapter) => {
+    const chapterPages = grouped.get(chapter.id) ?? [];
+    if (!chapter.publishAt || !chapterPages.length || chapterPages.some((page) => !page.src)) return false;
+    if (new Set(chapterPages.map((page) => page.src)).size !== chapterPages.length) return false;
+    const positions = chapterPages.map((page) => page.position).sort((a, b) => a - b);
+    return positions.every((position, index) => position === index + 1);
+  });
+  return ready ? { ...ready, publishedChapterCount: Number(ready.publishedChapterCount) } : null;
 }
 
 /** Capítulos publicados mais recentes (para o strip da home), com dados da obra. */

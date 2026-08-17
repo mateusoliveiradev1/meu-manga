@@ -5,10 +5,11 @@ import { StatusBadge } from "@/components/ui/bits";
 import { GenreChips } from "@/components/catalog/genre-chips";
 import { SeriesGrid } from "@/components/catalog/series-grid";
 import { LatestStrip } from "@/components/catalog/latest-strip";
+import { ScheduledRelease } from "@/components/catalog/scheduled-release";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { getCurrentUser } from "@/features/auth/session";
 import { getLatestComments } from "@/features/comments/queries";
-import { getChaptersBySeries, getFavoritedSeriesIds, getLatestChapters, getSeriesByIds, getSeriesList, getUserProgress } from "@/features/catalog/queries";
+import { getChaptersBySeries, getFavoritedSeriesIds, getLatestChapters, getNextScheduledChapter, getSeriesByIds, getSeriesList, getUserProgress } from "@/features/catalog/queries";
 import { chapterLabel, formatDate, formatNumber, initials } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +59,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     redirect(`/obras${query.size ? `?${query}` : ""}`);
   }
 
-  const [user, works, latestChapters] = await Promise.all([getCurrentUser(), getSeriesList(), getLatestChapters(8)]);
+  const [user, works, latestChapters, nextScheduled] = await Promise.all([getCurrentUser(), getSeriesList(), getLatestChapters(8), getNextScheduledChapter()]);
+  const renderedAt = new Date().toISOString();
   const featured = works.find((work) => work.chapterCount > 0) ?? works[0];
   const featuredChapters = featured ? await getChaptersBySeries(featured.id, true) : [];
   const [favoriteIds, progress] = user
@@ -104,6 +106,22 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <h1>Histórias que crescem <span className="hero-accent">capítulo a capítulo</span></h1>
           <p>A primeira obra está sendo preparada. Em breve, esta estante começa a ganhar vida.</p>
         </section>
+      )}
+
+      {nextScheduled?.publishAt && (
+        <ScheduledRelease
+          initialNow={renderedAt}
+          signedIn={Boolean(user)}
+          kind={nextScheduled.publishedChapterCount === 0 ? "series-premiere" : "chapter-release"}
+          release={{
+            number: nextScheduled.number,
+            title: nextScheduled.title,
+            publishAt: nextScheduled.publishAt.toISOString(),
+            seriesSlug: nextScheduled.seriesSlug,
+            seriesTitle: nextScheduled.seriesTitle,
+            seriesCover: nextScheduled.seriesCover,
+          }}
+        />
       )}
 
       {latestChapters.length > 0 && (

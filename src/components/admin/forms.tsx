@@ -23,17 +23,7 @@ import {
   IconTrash,
 } from "@/components/ui/icons";
 import { GENRES, genreBySlug, genreSlugsIn, normalizeTags } from "@/lib/genres";
-
-function slugifyClient(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-}
+import { brasiliaDateTimeToIso, slugify } from "@/lib/utils";
 
 /* ---------------- upload helpers ---------------- */
 
@@ -107,7 +97,7 @@ export function SeriesForm({
     if (!draftKey) return;
     try {
       const saved = JSON.parse(localStorage.getItem(draftKey) || "null") as Partial<{
-        title: string; slug: string; synopsis: string; cover: string; status: string; tags: string;
+        title: string; slug: string; slugTouched: boolean; synopsis: string; cover: string; status: string; tags: string;
       }> | null;
       if (saved) {
         setTitle(saved.title ?? "");
@@ -116,7 +106,7 @@ export function SeriesForm({
         setCover(saved.cover ?? "");
         setStatus(saved.status ?? "ongoing");
         setTags(saved.tags ?? "");
-        setSlugTouched(Boolean(saved.slug));
+        setSlugTouched(saved.slugTouched ?? Boolean(saved.slug && saved.slug !== slugify(saved.title ?? "")));
       }
     } catch {
       localStorage.removeItem(draftKey);
@@ -127,10 +117,10 @@ export function SeriesForm({
   useEffect(() => {
     if (!draftKey || !draftReady) return;
     const timer = window.setTimeout(() => {
-      localStorage.setItem(draftKey, JSON.stringify({ title, slug, synopsis, cover, status, tags }));
+      localStorage.setItem(draftKey, JSON.stringify({ title, slug, slugTouched, synopsis, cover, status, tags }));
     }, 350);
     return () => window.clearTimeout(timer);
-  }, [cover, draftKey, draftReady, slug, status, synopsis, tags, title]);
+  }, [cover, draftKey, draftReady, slug, slugTouched, status, synopsis, tags, title]);
 
   const selectedGenres = useMemo(() => {
     return new Set(genreSlugsIn(tags).map((slug) => genreBySlug(slug)?.name).filter(Boolean) as string[]);
@@ -160,7 +150,7 @@ export function SeriesForm({
 
   function onTitleChange(v: string) {
     setTitle(v);
-    if (!slugTouched) setSlug(slugifyClient(v));
+    if (!slugTouched) setSlug(slugify(v));
   }
 
   async function uploadFile(file: File): Promise<string> {
@@ -205,7 +195,7 @@ export function SeriesForm({
     const action = seriesId ? updateSeriesAction.bind(null, seriesId) : createSeriesAction;
     const res = await action({
       title,
-      slug,
+      slug: slug || slugify(title),
       synopsis,
       cover,
       status,
@@ -229,16 +219,31 @@ export function SeriesForm({
       </div>
       <div className="field">
         <label htmlFor="sf-slug">Endereço (slug)</label>
-        <input
-          id="sf-slug"
-          value={slug}
-          onChange={(e) => {
-            setSlug(e.target.value);
-            setSlugTouched(true);
-          }}
-          maxLength={60}
-        />
-        <span className="hint">O endereço da obra na URL. Deixe em branco para gerar automaticamente.</span>
+        <div className="row" style={{ alignItems: "stretch" }}>
+          <input
+            id="sf-slug"
+            value={slug}
+            onChange={(e) => {
+              const next = slugify(e.target.value);
+              setSlug(next);
+              setSlugTouched(Boolean(next));
+            }}
+            maxLength={60}
+            placeholder="gerado-automaticamente-do-titulo"
+            style={{ flex: 1 }}
+          />
+          <button
+            type="button"
+            className="btn ghost small"
+            onClick={() => {
+              setSlug(slugify(title));
+              setSlugTouched(false);
+            }}
+          >
+            Gerar do título
+          </button>
+        </div>
+        <span className="hint">Acompanha o título automaticamente. Se você editar o endereço à mão, ele será preservado.</span>
       </div>
       <div className="field">
         <label htmlFor="sf-synopsis">Sinopse</label>
@@ -417,9 +422,10 @@ export function ChapterForm({
       return;
     }
     setSaving(true);
+    const normalizedPublishAt = publishAt ? brasiliaDateTimeToIso(publishAt) : "";
     const res = chapterId
-      ? await updateChapterAction(chapterId, { number: num, title, cover, published, publishAt })
-      : await createChapterAction(seriesId, { number: num, title, cover, published, publishAt });
+      ? await updateChapterAction(chapterId, { number: num, title, cover, published, publishAt: normalizedPublishAt })
+      : await createChapterAction(seriesId, { number: num, title, cover, published: false, publishAt: "" });
     if (!res.ok) {
       setError(res.error);
       setSaving(false);
@@ -478,30 +484,36 @@ export function ChapterForm({
           </div>
         )}
       </div>
-      <div className="field">
-        <label htmlFor="cf-publish-at">Agendar publicação (opcional)</label>
-        <input
-          id="cf-publish-at"
-          type="datetime-local"
-          value={publishAt}
-          onChange={(e) => {
-            setPublishAt(e.target.value);
-            if (e.target.value) setPublished(false);
-          }}
-        />
-        <span className="hint">Com uma data preenchida, o capítulo fica oculto e entra no ar automaticamente assim que o horário chegar. A verificação diária do estúdio funciona como garantia mesmo sem visitas.</span>
-      </div>
-      <label className="row" style={{ marginBottom: "1.2rem", cursor: "pointer", gap: "0.5rem" }}>
-        <input
-          type="checkbox"
-          checked={published}
-          onChange={(e) => {
-            setPublished(e.target.checked);
-            if (e.target.checked) setPublishAt("");
-          }}
-        />
-        <span>Publicar agora (fica visível para os leitores)</span>
-      </label>
+      {chapterId ? (
+        <>
+          <div className="field">
+            <label htmlFor="cf-publish-at">Agendar publicação (horário de Brasília)</label>
+            <input
+              id="cf-publish-at"
+              type="datetime-local"
+              value={publishAt}
+              onChange={(e) => {
+                setPublishAt(e.target.value);
+                if (e.target.value) setPublished(false);
+              }}
+            />
+            <span className="hint">Basta escolher a data e salvar. O capítulo permanece oculto, ganha uma chamada na home e entra no ar automaticamente no horário — mesmo sem visitas.</span>
+          </div>
+          <label className="row" style={{ marginBottom: "1.2rem", cursor: "pointer", gap: "0.5rem" }}>
+            <input
+              type="checkbox"
+              checked={published}
+              onChange={(e) => {
+                setPublished(e.target.checked);
+                if (e.target.checked) setPublishAt("");
+              }}
+            />
+            <span>Publicar agora (fica visível para os leitores)</span>
+          </label>
+        </>
+      ) : (
+        <p className="draft-note" role="status">Primeiro crie o capítulo e adicione as páginas. Na etapa seguinte, você poderá agendar ou publicar com segurança.</p>
+      )}
       {error && <div className="form-error" role="alert">{error}</div>}
       {draftKey && draftReady && <p className="draft-note" role="status">Rascunho protegido automaticamente neste aparelho.</p>}
       <button type="submit" className="btn" disabled={saving}>

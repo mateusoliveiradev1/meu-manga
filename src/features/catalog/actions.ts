@@ -1,6 +1,6 @@
 "use server";
 
-import { count, eq, inArray } from "drizzle-orm";
+import { count, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { chapters, pages, series } from "@/db/schema";
 import { requireAdmin } from "@/features/auth/session";
@@ -22,7 +22,7 @@ export async function createSeriesAction(input: unknown): Promise<ActionResult> 
   const parsed = seriesInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const { title, synopsis, cover, status, tags } = parsed.data;
-  const slug = parsed.data.slug?.trim() || slugify(title);
+  const slug = slugify(parsed.data.slug?.trim() || title);
   if (!slug) return { ok: false, error: "Título inválido — não foi possível gerar o endereço." };
   try {
     const [row] = await db
@@ -40,7 +40,7 @@ export async function updateSeriesAction(id: number, input: unknown): Promise<Ac
   const parsed = seriesInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const { title, synopsis, cover, status, tags } = parsed.data;
-  const slug = parsed.data.slug?.trim() || slugify(title);
+  const slug = slugify(parsed.data.slug?.trim() || title);
   if (!slug) return { ok: false, error: "Título inválido — não foi possível gerar o endereço." };
   try {
     await db
@@ -65,6 +65,23 @@ function parsePublishAt(raw?: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+async function getPublicationBlockers(chapterId: number): Promise<string[]> {
+  const chapterPages = await db
+    .select({ position: pages.position, src: pages.src })
+    .from(pages)
+    .where(eq(pages.chapterId, chapterId));
+  if (!chapterPages.length) return ["adicione pelo menos uma página"];
+
+  const blockers: string[] = [];
+  const normalizedSources = chapterPages.map((page) => page.src.trim());
+  if (normalizedSources.some((src) => !src)) blockers.push("remova páginas sem imagem");
+  if (new Set(normalizedSources).size !== normalizedSources.length) blockers.push("remova imagens repetidas");
+  const positions = [...chapterPages].map((page) => page.position).sort((a, b) => a - b);
+  const missingPosition = positions.findIndex((position, index) => position !== index + 1);
+  if (missingPosition >= 0) blockers.push(`corrija a sequência a partir da página ${missingPosition + 1}`);
+  return blockers;
+}
+
 export async function createChapterAction(seriesId: number, input: unknown): Promise<ActionResult> {
   await requireAdmin();
   const parsed = chapterInputSchema.safeParse(input);
@@ -72,6 +89,10 @@ export async function createChapterAction(seriesId: number, input: unknown): Pro
   const { number, title, cover, published } = parsed.data;
   const publishAt = parsePublishAt(parsed.data.publishAt);
   const scheduled = !!publishAt;
+  if (parsed.data.publishAt && !publishAt) return { ok: false, error: "Data de publicação inválida." };
+  if (scheduled || published) {
+    return { ok: false, error: "Crie o capítulo, adicione as páginas e depois escolha entre agendar ou publicar agora." };
+  }
   const [row] = await db
     .insert(chapters)
     .values({
@@ -101,7 +122,16 @@ export async function updateChapterAction(id: number, input: unknown): Promise<A
   const { number, title, cover, published } = parsed.data;
   const publishAt = parsePublishAt(parsed.data.publishAt);
   const scheduled = !!publishAt;
+  if (parsed.data.publishAt && !publishAt) return { ok: false, error: "Data de publicação inválida." };
+  if (publishAt && publishAt.getTime() <= Date.now()) {
+    return { ok: false, error: "Escolha um horário futuro ou use “Publicar agora”." };
+  }
   const cur = await db.select().from(chapters).where(eq(chapters.id, id)).limit(1);
+  if (!cur[0]) return { ok: false, error: "Capítulo não encontrado." };
+  if (scheduled || published) {
+    const blockers = await getPublicationBlockers(id);
+    if (blockers.length) return { ok: false, error: `Antes de publicar, ${blockers.join("; ")}.` };
+  }
   const wasPublished = cur[0]?.published ?? false;
   await db
     .update(chapters)
@@ -112,8 +142,18 @@ export async function updateChapterAction(id: number, input: unknown): Promise<A
       published: scheduled ? false : published,
       publishedAt: scheduled ? null : published && !wasPublished ? new Date() : published ? undefined : null,
       publishAt: scheduled ? publishAt : published ? null : publishAt,
+      notified: scheduled || !published ? false : undefined,
     })
     .where(eq(chapters.id, id));
+  if (!scheduled && published && !wasPublished) {
+    await db
+      .update(series)
+      .set({
+        updatedAt: new Date(),
+        status: sql`case when ${series.status} = 'planned' then 'ongoing' else ${series.status} end`,
+      })
+      .where(eq(series.id, cur[0].seriesId));
+  }
   if (!scheduled && published && !wasPublished && cur[0]) {
     await dispatchChapterNotifications([{ id, seriesId: cur[0].seriesId, number, title }]);
   }
@@ -209,7 +249,10 @@ export async function bulkPublishChaptersAction(input: unknown): Promise<ActionR
       .where(inArray(chapters.id, unpublished.map((chapter) => chapter.id)));
     await tx
       .update(series)
-      .set({ updatedAt: new Date() })
+      .set({
+        updatedAt: new Date(),
+        status: sql`case when ${series.status} = 'planned' then 'ongoing' else ${series.status} end`,
+      })
       .where(inArray(series.id, [...new Set(unpublished.map((chapter) => chapter.seriesId))]));
   });
   await dispatchChapterNotifications(unpublished.map(({ id, seriesId, number, title }) => ({ id, seriesId, number, title })));
