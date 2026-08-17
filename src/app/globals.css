@@ -3877,19 +3877,20 @@ a:hover {
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: 9rem minmax(0, 1fr);
-  gap: clamp(1.4rem, 4vw, 3.2rem);
-  align-items: center;
+  grid-template-columns: 10rem minmax(0, 1fr);
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  align-items: start;
   margin: clamp(2.25rem, 6vw, 4.5rem) 0;
   padding: clamp(1.2rem, 3vw, 2rem);
   background: var(--surface);
   border-block: 1px solid var(--line-strong);
 }
+.scheduled-release.has-agenda { grid-template-columns: 10rem minmax(20rem, 1fr) minmax(17rem, 0.55fr); }
 .scheduled-release::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 0.25rem;
+  inset: 0 0 auto;
+  height: 0.2rem;
   background: var(--accent);
 }
 .scheduled-release-cover {
@@ -3914,6 +3915,21 @@ a:hover {
 .scheduled-release-time strong { color: var(--accent); font: 400 clamp(1.35rem, 3vw, 2rem)/1 var(--font-display); text-transform: uppercase; }
 .scheduled-release-time time { color: var(--ink-faint); font-size: 0.85rem; }
 .scheduled-release-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; margin-top: 1.25rem; }
+.scheduled-agenda { min-width: 0; align-self: stretch; padding-left: clamp(1rem, 2vw, 1.5rem); border-left: 1px solid var(--line); }
+.scheduled-agenda-head { display: grid; gap: 0.2rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--line); }
+.scheduled-agenda-head h3 { display: flex; gap: 0.45rem; align-items: center; margin: 0; font: 400 1.15rem/1.1 var(--font-display); text-transform: uppercase; }
+.scheduled-agenda-head > span { color: var(--ink-faint); font-size: 0.75rem; }
+.scheduled-agenda ol { padding: 0; margin: 0; list-style: none; }
+.scheduled-agenda li + li { border-top: 1px solid var(--line); }
+.scheduled-agenda li > a { min-width: 0; display: grid; grid-template-columns: 2.6rem minmax(0, 1fr) auto; gap: 0.7rem; align-items: center; min-height: 5.4rem; color: var(--paper); text-decoration: none; }
+.scheduled-agenda li > a:hover .scheduled-agenda-copy > strong { color: var(--accent); }
+.scheduled-agenda li time { display: grid; justify-items: center; color: var(--accent); font: 400 0.75rem/1 var(--font-display); text-transform: uppercase; }
+.scheduled-agenda li time strong { font-size: 1.8rem; }
+.scheduled-agenda-copy { min-width: 0; display: grid; gap: 0.2rem; }
+.scheduled-agenda-copy small { color: var(--ink-faint); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.scheduled-agenda-copy > strong { overflow: hidden; font-size: 0.83rem; text-overflow: ellipsis; white-space: nowrap; }
+.scheduled-agenda-copy > span { color: var(--ink-dim); font-size: 0.74rem; }
+.scheduled-agenda > p { margin: 0.75rem 0 0; color: var(--ink-faint); font-size: 0.7rem; line-height: 1.45; }
 .scheduled-release.is-series-premiere { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 .scheduled-release.is-series-premiere::before { background: var(--accent-ink); }
 .scheduled-release.is-series-premiere .scheduled-release-copy h2,
@@ -3925,11 +3941,26 @@ a:hover {
 .scheduled-release.is-series-premiere .scheduled-release-icon { color: var(--accent); background: var(--accent-ink); }
 .scheduled-release.is-series-premiere .scheduled-release-actions .btn { color: var(--accent); background: var(--accent-ink); border-color: var(--accent-ink); }
 .scheduled-release.is-series-premiere .scheduled-release-actions .btn.ghost { color: var(--accent-ink); background: transparent; }
+.scheduled-release.is-series-premiere .scheduled-agenda,
+.scheduled-release.is-series-premiere .scheduled-agenda-head,
+.scheduled-release.is-series-premiere .scheduled-agenda li + li { border-color: rgb(8 8 10 / 0.22); }
+.scheduled-release.is-series-premiere .scheduled-agenda-head h3,
+.scheduled-release.is-series-premiere .scheduled-agenda li > a,
+.scheduled-release.is-series-premiere .scheduled-agenda li time,
+.scheduled-release.is-series-premiere .scheduled-agenda li > a:hover .scheduled-agenda-copy > strong { color: var(--accent-ink); }
+.scheduled-release.is-series-premiere .scheduled-agenda-head > span,
+.scheduled-release.is-series-premiere .scheduled-agenda-copy small,
+.scheduled-release.is-series-premiere .scheduled-agenda-copy > span,
+.scheduled-release.is-series-premiere .scheduled-agenda > p { color: rgb(8 8 10 / 0.64); }
 
 @media (max-width: 860px) {
   .ranking-curated { grid-template-columns: 1fr; padding-top: 2.5rem; }
   .starter-grid { grid-template-columns: 1fr; }
   .starter-card + .starter-card { border-left: 0; border-top: 1px solid var(--line); }
+  .scheduled-release.has-agenda { grid-template-columns: 8rem minmax(0, 1fr); }
+  .scheduled-agenda { grid-column: 1 / -1; padding: 1.2rem 0 0; border-top: 1px solid var(--line); border-left: 0; }
+  .scheduled-agenda ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .scheduled-agenda li:nth-child(even) { padding-left: 1rem; border-left: 1px solid var(--line); }
 }
 
 @media (max-width: 600px) {
@@ -3942,7 +3973,9 @@ a:hover {
   .ranking-curated-card { padding-inline: 0.35rem; }
   .community-signal { min-height: 11rem; }
   .returning-reader { margin-top: 0.75rem; }
-  .scheduled-release { grid-template-columns: 5.75rem minmax(0, 1fr); gap: 1rem; padding: 1rem 0.85rem 1rem 1rem; }
+  .scheduled-release,
+  .scheduled-release.has-agenda { grid-template-columns: 1fr; gap: 1rem; padding: 1.1rem 0.9rem; }
+  .scheduled-release-cover { width: 7.25rem; }
   .scheduled-release-copy { grid-template-columns: 1fr; }
   .scheduled-release-icon { margin-bottom: 0.65rem; }
   .scheduled-release-copy > p,
@@ -3951,6 +3984,10 @@ a:hover {
   .scheduled-release-copy h2 { font-size: clamp(1.5rem, 8vw, 2rem); }
   .scheduled-release-copy > p { font-size: 0.88rem; }
   .scheduled-release-actions .btn { width: 100%; justify-content: center; }
+  .scheduled-agenda { margin-top: 0.2rem; }
+  .scheduled-agenda ol { grid-template-columns: 1fr; }
+  .scheduled-agenda li:nth-child(even) { padding-left: 0; border-left: 0; }
+  .scheduled-agenda li > a { min-height: 5rem; }
 }
 
 /* Growth suite: library, reader memory, clubs and editorial intelligence */

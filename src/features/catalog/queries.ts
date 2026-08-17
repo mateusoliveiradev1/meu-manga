@@ -244,14 +244,15 @@ export async function getLatestPublishedAt(): Promise<Date | null> {
   return row[0]?.m ?? null;
 }
 
-/** Próximo capítulo pronto e agendado, usado como chamada editorial na home. */
-export async function getNextScheduledChapter() {
+/** Capítulos prontos e agendados, usados na agenda editorial da home. */
+export async function getScheduledChapters(limit = 8) {
   await publishDueChapters();
   const scheduled = await db
     .select({
       id: chapters.id,
       number: chapters.number,
       title: chapters.title,
+      chapterCover: chapters.cover,
       publishAt: chapters.publishAt,
       seriesId: series.id,
       seriesSlug: series.slug,
@@ -264,8 +265,8 @@ export async function getNextScheduledChapter() {
     .innerJoin(series, eq(series.id, chapters.seriesId))
     .where(and(eq(chapters.published, false), isNotNull(chapters.publishAt), gt(chapters.publishAt, new Date())))
     .orderBy(asc(chapters.publishAt))
-    .limit(12);
-  if (!scheduled.length) return null;
+    .limit(Math.max(limit * 2, 12));
+  if (!scheduled.length) return [];
 
   const scheduledIds = scheduled.map((chapter) => chapter.id);
   const pageRows = await db
@@ -279,14 +280,14 @@ export async function getNextScheduledChapter() {
     grouped.set(page.chapterId, current);
   }
 
-  const ready = scheduled.find((chapter) => {
+  const ready = scheduled.filter((chapter) => {
     const chapterPages = grouped.get(chapter.id) ?? [];
     if (!chapter.publishAt || !chapterPages.length || chapterPages.some((page) => !page.src)) return false;
     if (new Set(chapterPages.map((page) => page.src)).size !== chapterPages.length) return false;
     const positions = chapterPages.map((page) => page.position).sort((a, b) => a - b);
     return positions.every((position, index) => position === index + 1);
   });
-  return ready ? { ...ready, publishedChapterCount: Number(ready.publishedChapterCount) } : null;
+  return ready.slice(0, limit).map((chapter) => ({ ...chapter, publishedChapterCount: Number(chapter.publishedChapterCount) }));
 }
 
 /** Capítulos publicados mais recentes (para o strip da home), com dados da obra. */

@@ -9,11 +9,10 @@ import { ScheduledRelease } from "@/components/catalog/scheduled-release";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
 import { getCurrentUser } from "@/features/auth/session";
 import { getLatestComments } from "@/features/comments/queries";
-import { getChaptersBySeries, getFavoritedSeriesIds, getLatestChapters, getNextScheduledChapter, getSeriesByIds, getSeriesList, getUserProgress } from "@/features/catalog/queries";
+import { getChaptersBySeries, getFavoritedSeriesIds, getLatestChapters, getScheduledChapters, getSeriesByIds, getSeriesList, getUserProgress } from "@/features/catalog/queries";
 import { chapterLabel, formatDate, formatNumber, initials } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-const CATALOG_DEMO = process.env.NEXT_PUBLIC_CATALOG_DEMO !== "false";
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -59,8 +58,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     redirect(`/obras${query.size ? `?${query}` : ""}`);
   }
 
-  const [user, works, latestChapters, nextScheduled] = await Promise.all([getCurrentUser(), getSeriesList(), getLatestChapters(8), getNextScheduledChapter()]);
+  const [user, works, latestChapters, scheduledChapters] = await Promise.all([getCurrentUser(), getSeriesList(), getLatestChapters(8), getScheduledChapters(8)]);
   const renderedAt = new Date().toISOString();
+  const scheduledPremiere = scheduledChapters.find((chapter) => chapter.seriesStatus === "planned" && chapter.publishedChapterCount === 0);
+  const mainSchedule = scheduledPremiere ?? scheduledChapters[0];
+  const scheduleKind = (chapter: (typeof scheduledChapters)[number]) => chapter.seriesStatus === "planned" && chapter.publishedChapterCount === 0 ? "series-premiere" as const : "chapter-release" as const;
   const featured = works.find((work) => work.chapterCount > 0) ?? works[0];
   const featuredChapters = featured ? await getChaptersBySeries(featured.id, true) : [];
   const [favoriteIds, progress] = user
@@ -72,8 +74,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      {progress.length > 0 && <ContinueReading progress={progress} inProgress={inProgress} />}
-
       {featured ? (
         <section className="featured" aria-label="História em destaque">
           <Link href={`/obra/${featured.slug}`} className="featured-cover" aria-label={`Conhecer ${featured.title}`}>
@@ -81,7 +81,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <ResponsiveImage src={featured.cover} alt={`Capa de ${featured.title}`} sizes="(max-width: 720px) 11rem, 16rem" priority />
           </Link>
           <div className="featured-body">
-            {CATALOG_DEMO && <span className="demo-note">Catálogo em demonstração</span>}
             <h1>{featured.title}</h1>
             <p className="featured-synopsis">{featured.synopsis}</p>
             <div className="featured-meta">
@@ -108,21 +107,34 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </section>
       )}
 
-      {nextScheduled?.publishAt && (
+      {mainSchedule?.publishAt && (
         <ScheduledRelease
           initialNow={renderedAt}
           signedIn={Boolean(user)}
-          kind={nextScheduled.publishedChapterCount === 0 ? "series-premiere" : "chapter-release"}
+          kind={scheduleKind(mainSchedule)}
           release={{
-            number: nextScheduled.number,
-            title: nextScheduled.title,
-            publishAt: nextScheduled.publishAt.toISOString(),
-            seriesSlug: nextScheduled.seriesSlug,
-            seriesTitle: nextScheduled.seriesTitle,
-            seriesCover: nextScheduled.seriesCover,
+            id: mainSchedule.id,
+            number: mainSchedule.number,
+            title: mainSchedule.title,
+            publishAt: mainSchedule.publishAt.toISOString(),
+            seriesSlug: mainSchedule.seriesSlug,
+            seriesTitle: mainSchedule.seriesTitle,
+            image: mainSchedule.chapterCover || mainSchedule.seriesCover,
           }}
+          upcoming={scheduledChapters.filter((chapter) => chapter.id !== mainSchedule.id && chapter.publishAt).map((chapter) => ({
+            id: chapter.id,
+            number: chapter.number,
+            title: chapter.title,
+            publishAt: chapter.publishAt!.toISOString(),
+            seriesSlug: chapter.seriesSlug,
+            seriesTitle: chapter.seriesTitle,
+            image: chapter.chapterCover || chapter.seriesCover,
+            kind: scheduleKind(chapter),
+          }))}
         />
       )}
+
+      {progress.length > 0 && <ContinueReading progress={progress} inProgress={inProgress} />}
 
       {latestChapters.length > 0 && (
         <section className="section" aria-label="Capítulos recentes">
