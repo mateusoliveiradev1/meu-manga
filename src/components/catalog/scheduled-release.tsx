@@ -32,6 +32,8 @@ type ScheduledReleaseProps = {
   initialFollowing: boolean;
 };
 
+const MAX_VISIBLE_UPCOMING = 2;
+
 const dateParts = new Intl.DateTimeFormat("en-CA", {
   timeZone: APP_TIME_ZONE,
   year: "numeric",
@@ -104,6 +106,8 @@ export function ScheduledRelease({ release, upcoming, kind, initialNow, signedIn
   const [devicePushActive, setDevicePushActive] = useState(false);
   const [activating, setActivating] = useState(false);
   const [reminderMessage, setReminderMessage] = useState("");
+  const visibleUpcoming = upcoming.slice(0, MAX_VISIBLE_UPCOMING);
+  const hiddenUpcomingCount = Math.max(0, upcoming.length - visibleUpcoming.length);
 
   useEffect(() => {
     const remaining = refreshTarget - Date.now();
@@ -195,10 +199,10 @@ export function ScheduledRelease({ release, upcoming, kind, initialNow, signedIn
         <aside className="scheduled-agenda" aria-labelledby="scheduled-agenda-title">
           <div className="scheduled-agenda-head">
             <h3 id="scheduled-agenda-title"><IconCalendar size={16} /> Agenda da estante</h3>
-            <span>Esta data + {upcoming.length} {upcoming.length === 1 ? "próxima" : "próximas"}</span>
+            <span>{upcoming.length} {upcoming.length === 1 ? "próxima data confirmada" : "próximas datas confirmadas"}</span>
           </div>
           <ol>
-            {upcoming.slice(0, 4).map((item) => {
+            {visibleUpcoming.map((item) => {
               const itemTarget = new Date(item.publishAt).getTime();
               const calendar = calendarParts(itemTarget);
               return (
@@ -216,7 +220,9 @@ export function ScheduledRelease({ release, upcoming, kind, initialNow, signedIn
               );
             })}
           </ol>
-          <p>A agenda é atualizada automaticamente a cada novo agendamento.</p>
+          <p>{hiddenUpcomingCount > 0
+            ? `Mais ${hiddenUpcomingCount} ${hiddenUpcomingCount === 1 ? "lançamento confirmado" : "lançamentos confirmados"} na agenda.`
+            : "Novas datas entram aqui automaticamente."}</p>
         </aside>
       )}
     </section>

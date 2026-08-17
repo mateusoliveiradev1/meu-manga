@@ -61,9 +61,15 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   const [user, works, latestChapters, scheduledChapters] = await Promise.all([getCurrentUser(), getSeriesList(), getLatestChapters(8), getScheduledChapters(8)]);
   const renderedAt = new Date().toISOString();
-  const scheduledPremiere = scheduledChapters.find((chapter) => chapter.seriesStatus === "planned" && chapter.publishedChapterCount === 0);
+  const firstScheduledChapterByPlannedSeries = new Map<number, number>();
+  for (const chapter of scheduledChapters) {
+    if (chapter.seriesStatus === "planned" && chapter.publishedChapterCount === 0 && !firstScheduledChapterByPlannedSeries.has(chapter.seriesId)) {
+      firstScheduledChapterByPlannedSeries.set(chapter.seriesId, chapter.id);
+    }
+  }
+  const scheduleKind = (chapter: (typeof scheduledChapters)[number]) => firstScheduledChapterByPlannedSeries.get(chapter.seriesId) === chapter.id ? "series-premiere" as const : "chapter-release" as const;
+  const scheduledPremiere = scheduledChapters.find((chapter) => scheduleKind(chapter) === "series-premiere");
   const mainSchedule = scheduledPremiere ?? scheduledChapters[0];
-  const scheduleKind = (chapter: (typeof scheduledChapters)[number]) => chapter.seriesStatus === "planned" && chapter.publishedChapterCount === 0 ? "series-premiere" as const : "chapter-release" as const;
   const featured = works.find((work) => work.chapterCount > 0) ?? works[0];
   const featuredChapters = featured ? await getChaptersBySeries(featured.id, true) : [];
   const [favoriteIds, progress] = user
