@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
-import { IconArrowRight, IconBell, IconCalendar, IconCheck } from "@/components/ui/icons";
+import { IconArrowRight, IconBell, IconCalendar, IconCheck, IconClose } from "@/components/ui/icons";
 import { enableChapterReminderAction } from "@/features/push/actions";
 import { browserPushSupported, currentBrowserPushActive, enableBrowserPush } from "@/features/push/client";
 import { APP_TIME_ZONE, chapterLabel } from "@/lib/utils";
@@ -106,8 +107,15 @@ export function ScheduledRelease({ release, upcoming, kind, initialNow, signedIn
   const [devicePushActive, setDevicePushActive] = useState(false);
   const [activating, setActivating] = useState(false);
   const [reminderMessage, setReminderMessage] = useState("");
+  const [mounted, setMounted] = useState(false);
+  const [agendaOpen, setAgendaOpen] = useState(false);
+  const agendaTriggerRef = useRef<HTMLButtonElement>(null);
+  const agendaPanelRef = useRef<HTMLElement>(null);
   const visibleUpcoming = upcoming.slice(0, MAX_VISIBLE_UPCOMING);
   const hiddenUpcomingCount = Math.max(0, upcoming.length - visibleUpcoming.length);
+  const fullAgenda = [{ ...release, kind }, ...upcoming].sort((a, b) => new Date(a.publishAt).getTime() - new Date(b.publishAt).getTime());
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const remaining = refreshTarget - Date.now();
@@ -125,6 +133,39 @@ export function ScheduledRelease({ release, upcoming, kind, initialNow, signedIn
     if (!available) return;
     currentBrowserPushActive().then(setDevicePushActive).catch(() => setDevicePushActive(false));
   }, [pushConfigured]);
+
+  useEffect(() => {
+    if (!agendaOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const panel = agendaPanelRef.current;
+    const focusable = panel?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])');
+    focusable?.[0]?.focus();
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setAgendaOpen(false);
+        return;
+      }
+      if (event.key !== "Tab" || !focusable?.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      agendaTriggerRef.current?.focus();
+    };
+  }, [agendaOpen]);
 
   async function activateReminder() {
     if (!signedIn) {
@@ -166,9 +207,45 @@ export function ScheduledRelease({ release, upcoming, kind, initialNow, signedIn
   const exactDate = exactDateFormatter.format(new Date(release.publishAt));
   const deviceReminderActive = following && devicePushActive;
   const siteReminderOnly = following && !pushAvailable;
+  const agendaLayer = agendaOpen && mounted ? createPortal(
+    <div className="schedule-sheet-layer">
+      <button className="schedule-sheet-backdrop" type="button" tabIndex={-1} aria-label="Fechar agenda" onClick={() => setAgendaOpen(false)} />
+      <aside ref={agendaPanelRef} id="schedule-full-agenda" className="schedule-sheet" role="dialog" aria-modal="true" aria-labelledby="schedule-sheet-title">
+        <header className="schedule-sheet-head">
+          <div>
+            <h2 id="schedule-sheet-title"><IconCalendar size={19} /> Agenda completa</h2>
+            <p>{fullAgenda.length} {fullAgenda.length === 1 ? "lançamento confirmado" : "lançamentos confirmados"}, em ordem cronológica.</p>
+          </div>
+          <button type="button" aria-label="Fechar agenda" onClick={() => setAgendaOpen(false)}><IconClose size={20} /></button>
+        </header>
+        <ol className="schedule-sheet-list">
+          {fullAgenda.map((item) => {
+            const itemTarget = new Date(item.publishAt).getTime();
+            const calendar = calendarParts(itemTarget);
+            return (
+              <li key={item.id}>
+                <Link href={`/obra/${item.seriesSlug}`} onClick={() => setAgendaOpen(false)}>
+                  <time dateTime={item.publishAt}><strong>{calendar.day}</strong><span>{calendar.month}</span></time>
+                  <span className="schedule-sheet-copy">
+                    <small>{item.kind === "series-premiere" ? "Estreia de obra" : "Novo capítulo"}</small>
+                    <strong>{item.seriesTitle}</strong>
+                    <span>{chapterLabel(item.number)} · {compactSchedule(itemTarget, now)}</span>
+                  </span>
+                  <IconArrowRight size={15} />
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+        <footer className="schedule-sheet-foot">A agenda acompanha automaticamente tudo o que já está pronto para publicação.</footer>
+      </aside>
+    </div>,
+    document.body
+  ) : null;
 
   return (
-    <section id="agenda-da-estante" className={`scheduled-release is-${kind}${upcoming.length ? " has-agenda" : ""}`} aria-labelledby="scheduled-release-title">
+    <>
+      <section id="agenda-da-estante" className={`scheduled-release is-${kind}${upcoming.length ? " has-agenda" : ""}`} aria-labelledby="scheduled-release-title">
       <Link href={`/obra/${release.seriesSlug}`} className="scheduled-release-cover" aria-label={`Conhecer ${release.seriesTitle}`}>
         <ResponsiveImage src={release.image} alt={`Capa do ${chapterLabel(release.number)} de ${release.seriesTitle}`} sizes="(max-width: 640px) 6rem, 10rem" />
         <span className="scheduled-cover-label">{kind === "series-premiere" ? "Estreia" : chapterLabel(release.number)}</span>
@@ -220,11 +297,16 @@ export function ScheduledRelease({ release, upcoming, kind, initialNow, signedIn
               );
             })}
           </ol>
-          <p>{hiddenUpcomingCount > 0
-            ? `Mais ${hiddenUpcomingCount} ${hiddenUpcomingCount === 1 ? "lançamento confirmado" : "lançamentos confirmados"} na agenda.`
-            : "Novas datas entram aqui automaticamente."}</p>
+          {hiddenUpcomingCount > 0 ? (
+            <button ref={agendaTriggerRef} type="button" className="scheduled-agenda-more" aria-expanded={agendaOpen} aria-controls="schedule-full-agenda" onClick={() => setAgendaOpen(true)}>
+              <span>Mais {hiddenUpcomingCount} {hiddenUpcomingCount === 1 ? "lançamento confirmado" : "lançamentos confirmados"}</span>
+              <strong>Ver agenda completa <IconArrowRight size={13} /></strong>
+            </button>
+          ) : <p>Novas datas entram aqui automaticamente.</p>}
         </aside>
       )}
-    </section>
+      </section>
+      {agendaLayer}
+    </>
   );
 }

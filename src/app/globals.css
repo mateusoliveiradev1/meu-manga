@@ -3936,6 +3936,10 @@ a:hover {
 .scheduled-agenda-copy > strong { overflow: hidden; font-size: 0.83rem; text-overflow: ellipsis; white-space: nowrap; }
 .scheduled-agenda-copy > span { color: var(--ink-dim); font-size: 0.74rem; }
 .scheduled-agenda > p { margin: 0.75rem 0 0; color: var(--ink-faint); font-size: 0.7rem; line-height: 1.45; }
+.scheduled-agenda-more { width: 100%; min-height: 3.25rem; display: flex; justify-content: space-between; gap: 0.75rem; align-items: center; margin-top: 0.45rem; padding: 0.55rem 0; color: var(--ink-faint); text-align: left; background: transparent; border: 0; border-top: 1px solid var(--line); cursor: pointer; }
+.scheduled-agenda-more > span { font-size: 0.7rem; line-height: 1.4; }
+.scheduled-agenda-more > strong { display: inline-flex; flex: 0 0 auto; gap: 0.3rem; align-items: center; color: var(--accent); font-size: 0.72rem; }
+.scheduled-agenda-more:hover > strong { text-decoration: underline; text-underline-offset: 0.2rem; }
 .scheduled-release.is-series-premiere { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 .scheduled-release.is-series-premiere::before { background: var(--accent-ink); }
 .scheduled-release.is-series-premiere .scheduled-release-copy h2,
@@ -3961,6 +3965,30 @@ a:hover {
 .scheduled-release.is-series-premiere .scheduled-agenda-copy > span,
 .scheduled-release.is-series-premiere .scheduled-agenda > p { color: rgb(8 8 10 / 0.64); }
 .scheduled-release.is-series-premiere .scheduled-agenda { padding-block: 1rem; padding-right: 1rem; background: rgb(8 8 10 / 0.045); }
+.scheduled-release.is-series-premiere .scheduled-agenda-more { color: rgb(8 8 10 / 0.64); border-color: rgb(8 8 10 / 0.22); }
+.scheduled-release.is-series-premiere .scheduled-agenda-more > strong { color: var(--accent-ink); }
+
+.schedule-sheet-layer { position: fixed; z-index: 140; inset: 0; display: grid; justify-items: end; }
+.schedule-sheet-backdrop { position: absolute; inset: 0; width: 100%; border: 0; background: rgb(4 4 7 / 0.76); cursor: default; }
+.schedule-sheet { position: relative; width: min(32rem, 100vw); height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; color: var(--paper); background: var(--surface); border-left: 1px solid var(--line-strong); box-shadow: -1.5rem 0 3.5rem rgb(0 0 0 / 0.48); animation: schedule-sheet-in 240ms cubic-bezier(0.16, 1, 0.3, 1); }
+.schedule-sheet::before { content: ""; position: absolute; inset: 0 0 auto; height: 0.2rem; background: var(--accent); }
+.schedule-sheet-head { display: flex; justify-content: space-between; gap: 1.25rem; align-items: flex-start; padding: 1.6rem 1.5rem 1.25rem; border-bottom: 1px solid var(--line); }
+.schedule-sheet-head h2 { display: flex; gap: 0.55rem; align-items: center; margin: 0; font-size: clamp(1.7rem, 5vw, 2.25rem); line-height: 1; }
+.schedule-sheet-head h2 svg { color: var(--accent); }
+.schedule-sheet-head p { margin: 0.5rem 0 0; color: var(--ink-dim); font-size: 0.82rem; }
+.schedule-sheet-head button { width: 2.75rem; height: 2.75rem; flex: 0 0 auto; display: grid; place-items: center; color: var(--paper); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.schedule-sheet-list { overflow-y: auto; overscroll-behavior: contain; padding: 0 1.5rem; margin: 0; list-style: none; scrollbar-color: var(--accent) var(--surface-2); scrollbar-width: thin; }
+.schedule-sheet-list li + li { border-top: 1px solid var(--line); }
+.schedule-sheet-list li > a { min-width: 0; min-height: 6.25rem; display: grid; grid-template-columns: 3.25rem minmax(0, 1fr) auto; gap: 0.9rem; align-items: center; color: var(--paper); text-decoration: none; }
+.schedule-sheet-list li > a:hover .schedule-sheet-copy > strong { color: var(--accent); }
+.schedule-sheet-list time { display: grid; justify-items: center; color: var(--accent); font: 400 0.8rem/1 var(--font-display); text-transform: uppercase; }
+.schedule-sheet-list time strong { font-size: 2rem; }
+.schedule-sheet-copy { min-width: 0; display: grid; gap: 0.25rem; }
+.schedule-sheet-copy small { color: var(--ink-faint); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.schedule-sheet-copy > strong { overflow: hidden; font-size: 0.92rem; text-overflow: ellipsis; white-space: nowrap; }
+.schedule-sheet-copy > span { color: var(--ink-dim); font-size: 0.78rem; }
+.schedule-sheet-foot { padding: 1rem 1.5rem max(1rem, env(safe-area-inset-bottom)); color: var(--ink-faint); font-size: 0.74rem; line-height: 1.5; border-top: 1px solid var(--line); }
+@keyframes schedule-sheet-in { from { transform: translateX(1.25rem); opacity: 0; } }
 
 @media (max-width: 860px) {
   .ranking-curated { grid-template-columns: 1fr; padding-top: 2.5rem; }
@@ -3998,6 +4026,17 @@ a:hover {
   .scheduled-agenda ol { grid-template-columns: 1fr; }
   .scheduled-agenda li:nth-child(even) { padding-left: 0; border-left: 0; }
   .scheduled-agenda li > a { min-height: 5rem; }
+  .scheduled-agenda-more { align-items: flex-start; flex-direction: column; gap: 0.2rem; }
+  .schedule-sheet-layer { align-items: end; }
+  .schedule-sheet { width: 100%; height: min(82dvh, 42rem); border-top: 1px solid var(--line-strong); border-left: 0; border-radius: 14px 14px 0 0; animation-name: schedule-sheet-up; }
+  .schedule-sheet-head { padding: 1.35rem 1rem 1rem; }
+  .schedule-sheet-list { padding-inline: 1rem; }
+  .schedule-sheet-foot { padding-inline: 1rem; }
+  @keyframes schedule-sheet-up { from { transform: translateY(1.25rem); opacity: 0; } }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .schedule-sheet { animation: none; }
 }
 
 /* Growth suite: library, reader memory, clubs and editorial intelligence */

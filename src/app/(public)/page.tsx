@@ -59,7 +59,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     redirect(`/obras${query.size ? `?${query}` : ""}`);
   }
 
-  const [user, works, latestChapters, scheduledChapters] = await Promise.all([getCurrentUser(), getSeriesList(), getLatestChapters(8), getScheduledChapters(8)]);
+  const [user, works, latestChapters, scheduledChapters] = await Promise.all([getCurrentUser(), getSeriesList(), getLatestChapters(8), getScheduledChapters(null)]);
   const renderedAt = new Date().toISOString();
   const firstScheduledChapterByPlannedSeries = new Map<number, number>();
   for (const chapter of scheduledChapters) {

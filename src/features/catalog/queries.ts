@@ -245,9 +245,9 @@ export async function getLatestPublishedAt(): Promise<Date | null> {
 }
 
 /** Capítulos prontos e agendados, usados na agenda editorial da home. */
-export async function getScheduledChapters(limit = 8) {
+export async function getScheduledChapters(limit: number | null = 8) {
   await publishDueChapters();
-  const scheduled = await db
+  const scheduledQuery = db
     .select({
       id: chapters.id,
       number: chapters.number,
@@ -264,8 +264,8 @@ export async function getScheduledChapters(limit = 8) {
     .from(chapters)
     .innerJoin(series, eq(series.id, chapters.seriesId))
     .where(and(eq(chapters.published, false), isNotNull(chapters.publishAt), gt(chapters.publishAt, new Date())))
-    .orderBy(asc(chapters.publishAt))
-    .limit(Math.max(limit * 2, 12));
+    .orderBy(asc(chapters.publishAt));
+  const scheduled = limit == null ? await scheduledQuery : await scheduledQuery.limit(Math.max(limit * 2, 12));
   if (!scheduled.length) return [];
 
   const scheduledIds = scheduled.map((chapter) => chapter.id);
@@ -287,7 +287,8 @@ export async function getScheduledChapters(limit = 8) {
     const positions = chapterPages.map((page) => page.position).sort((a, b) => a - b);
     return positions.every((position, index) => position === index + 1);
   });
-  return ready.slice(0, limit).map((chapter) => ({ ...chapter, publishedChapterCount: Number(chapter.publishedChapterCount) }));
+  const result = limit == null ? ready : ready.slice(0, limit);
+  return result.map((chapter) => ({ ...chapter, publishedChapterCount: Number(chapter.publishedChapterCount) }));
 }
 
 /** Capítulos publicados mais recentes (para o strip da home), com dados da obra. */
