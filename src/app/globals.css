@@ -3894,6 +3894,7 @@ a:hover {
   background: var(--accent);
 }
 .scheduled-release-cover {
+  position: relative;
   overflow: hidden;
   display: block;
   aspect-ratio: 3 / 4;
@@ -3903,6 +3904,7 @@ a:hover {
 }
 .scheduled-release-cover img { width: 100%; height: 100%; object-fit: cover; transition: transform 220ms ease; }
 .scheduled-release-cover:hover img { transform: scale(1.025); }
+.scheduled-cover-label { position: absolute; right: 0.6rem; bottom: 0.6rem; min-height: 1.75rem; display: inline-flex; align-items: center; padding: 0 0.55rem; color: var(--accent); background: rgb(8 8 10 / 0.9); border-radius: 999px; font: 400 0.7rem/1 var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; }
 .scheduled-release-copy { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 0.75rem; align-items: start; }
 .scheduled-release-icon { width: 2rem; height: 2rem; display: inline-grid; place-items: center; color: var(--accent-ink); background: var(--accent); border-radius: 50%; }
 .scheduled-release-copy h2 { max-width: 18ch; margin: 0; font-size: clamp(1.75rem, 4vw, 2.8rem); line-height: 1.02; }
@@ -3913,8 +3915,12 @@ a:hover {
 .scheduled-release-copy > p strong { color: var(--paper); }
 .scheduled-release-time { display: flex; gap: 0.8rem 1.2rem; align-items: baseline; flex-wrap: wrap; padding-top: 1rem; border-top: 1px solid var(--line); }
 .scheduled-release-time strong { color: var(--accent); font: 400 clamp(1.35rem, 3vw, 2rem)/1 var(--font-display); text-transform: uppercase; }
-.scheduled-release-time time { color: var(--ink-faint); font-size: 0.85rem; }
+.scheduled-release-time > span { display: grid; gap: 0.2rem; }
+.scheduled-release-time time { color: var(--ink-dim); font-size: 0.85rem; }
+.scheduled-release-time small { color: var(--ink-faint); font-size: 0.7rem; }
 .scheduled-release-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; margin-top: 1.25rem; }
+.scheduled-release-actions .btn:disabled { cursor: wait; opacity: 0.72; }
+.scheduled-reminder-message { grid-column: 2; max-width: 58ch; margin: 0.7rem 0 0; color: var(--ink-faint); font-size: 0.75rem; line-height: 1.45; }
 .scheduled-agenda { min-width: 0; align-self: stretch; padding-left: clamp(1rem, 2vw, 1.5rem); border-left: 1px solid var(--line); }
 .scheduled-agenda-head { display: grid; gap: 0.2rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--line); }
 .scheduled-agenda-head h3 { display: flex; gap: 0.45rem; align-items: center; margin: 0; font: 400 1.15rem/1.1 var(--font-display); text-transform: uppercase; }
@@ -3938,6 +3944,8 @@ a:hover {
 .scheduled-release.is-series-premiere .scheduled-release-time { border-color: rgb(8 8 10 / 0.22); }
 .scheduled-release.is-series-premiere .scheduled-release-time strong,
 .scheduled-release.is-series-premiere .scheduled-release-time time { color: var(--accent-ink); }
+.scheduled-release.is-series-premiere .scheduled-release-time small,
+.scheduled-release.is-series-premiere .scheduled-reminder-message { color: rgb(8 8 10 / 0.64); }
 .scheduled-release.is-series-premiere .scheduled-release-icon { color: var(--accent); background: var(--accent-ink); }
 .scheduled-release.is-series-premiere .scheduled-release-actions .btn { color: var(--accent); background: var(--accent-ink); border-color: var(--accent-ink); }
 .scheduled-release.is-series-premiere .scheduled-release-actions .btn.ghost { color: var(--accent-ink); background: transparent; }
@@ -3952,6 +3960,7 @@ a:hover {
 .scheduled-release.is-series-premiere .scheduled-agenda-copy small,
 .scheduled-release.is-series-premiere .scheduled-agenda-copy > span,
 .scheduled-release.is-series-premiere .scheduled-agenda > p { color: rgb(8 8 10 / 0.64); }
+.scheduled-release.is-series-premiere .scheduled-agenda { padding-block: 1rem; padding-right: 1rem; background: rgb(8 8 10 / 0.045); }
 
 @media (max-width: 860px) {
   .ranking-curated { grid-template-columns: 1fr; padding-top: 2.5rem; }
@@ -3980,7 +3989,8 @@ a:hover {
   .scheduled-release-icon { margin-bottom: 0.65rem; }
   .scheduled-release-copy > p,
   .scheduled-release-time,
-  .scheduled-release-actions { grid-column: 1; }
+  .scheduled-release-actions,
+  .scheduled-reminder-message { grid-column: 1; }
   .scheduled-release-copy h2 { font-size: clamp(1.5rem, 8vw, 2rem); }
   .scheduled-release-copy > p { font-size: 0.88rem; }
   .scheduled-release-actions .btn { width: 100%; justify-content: center; }

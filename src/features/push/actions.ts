@@ -1,8 +1,9 @@
 "use server";
 
 import { and, eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db/client";
-import { pushSubscriptions, user as userTable } from "@/db/schema";
+import { pushSubscriptions, user as userTable, userFavorites } from "@/db/schema";
 import { requireUser } from "@/features/auth/session";
 
 type SubscriptionInput = { endpoint: string; keys: { p256dh: string; auth: string } };
@@ -26,5 +27,16 @@ export async function unsubscribePushAction(endpoint: string) {
 export async function updatePushPreferencesAction(input: { chapters: boolean; social: boolean }) {
   const user = await requireUser();
   await db.update(userTable).set({ notifyNewChapters: Boolean(input.chapters), notifySocial: Boolean(input.social), updatedAt: new Date() }).where(eq(userTable.id, user.id));
+  return { ok: true } as const;
+}
+
+export async function enableChapterReminderAction(seriesId: number) {
+  const user = await requireUser();
+  if (!Number.isInteger(seriesId) || seriesId <= 0) return { ok: false, error: "Obra inválida." } as const;
+  await db.transaction(async (tx) => {
+    await tx.insert(userFavorites).values({ userId: user.id, seriesId }).onConflictDoNothing();
+    await tx.update(userTable).set({ notifyNewChapters: true, updatedAt: new Date() }).where(eq(userTable.id, user.id));
+  });
+  revalidatePath("/");
   return { ok: true } as const;
 }

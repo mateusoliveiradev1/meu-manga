@@ -6,7 +6,7 @@ import { chapters, pages, series } from "@/db/schema";
 import { requireAdmin } from "@/features/auth/session";
 import { dispatchChapterNotifications } from "@/features/catalog/publish";
 import { chapterInputSchema, pagesInputSchema, seriesInputSchema } from "@/lib/validation";
-import { slugify } from "@/lib/utils";
+import { brasiliaDateTimeToIso, slugify } from "@/lib/utils";
 
 type ActionResult = { ok: true; id?: number } | { ok: false; error: string };
 
@@ -61,7 +61,9 @@ export async function deleteSeriesAction(id: number): Promise<ActionResult> {
 
 function parsePublishAt(raw?: string): Date | null {
   if (!raw) return null;
-  const d = new Date(raw);
+  // Compatibilidade com abas antigas: datetime-local sem fuso sempre representa Brasília.
+  const normalized = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw) ? brasiliaDateTimeToIso(raw) : raw;
+  const d = new Date(normalized);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 

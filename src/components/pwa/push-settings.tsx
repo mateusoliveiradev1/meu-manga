@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { subscribePushAction, unsubscribePushAction, updatePushPreferencesAction } from "@/features/push/actions";
+import { unsubscribePushAction, updatePushPreferencesAction } from "@/features/push/actions";
+import { browserPushSupported, enableBrowserPush } from "@/features/push/client";
 import { IconBell, IconCheck } from "@/components/ui/icons";
-
-function decodeKey(value: string) {
-  const padding = "=".repeat((4 - value.length % 4) % 4);
-  const raw = atob((value + padding).replace(/-/g, "+").replace(/_/g, "/"));
-  return Uint8Array.from([...raw].map((char) => char.charCodeAt(0)));
-}
 
 export function PushSettings({ configured, initialCount, initialChapters, initialSocial }: { configured: boolean; initialCount: number; initialChapters: boolean; initialSocial: boolean }) {
   const [supported, setSupported] = useState<boolean | null>(null);
@@ -18,18 +13,12 @@ export function PushSettings({ configured, initialCount, initialChapters, initia
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
 
-  useEffect(() => { setSupported("serviceWorker" in navigator && "PushManager" in window && "Notification" in window); }, []);
+  useEffect(() => { setSupported(browserPushSupported()); }, []);
 
   async function enable() {
     setMessage("");
     try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") return setMessage("A permissão foi recusada. Você pode liberá-la nas configurações do navegador.");
-      const registration = await navigator.serviceWorker.ready;
-      let subscription = await registration.pushManager.getSubscription();
-      if (!subscription) subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeKey(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "") });
-      const json = subscription.toJSON();
-      const result = await subscribePushAction({ endpoint: subscription.endpoint, keys: { p256dh: json.keys?.p256dh || "", auth: json.keys?.auth || "" } });
+      const result = await enableBrowserPush();
       if (!result.ok) return setMessage(result.error);
       setActive(true); setMessage("Avisos ativados neste aparelho.");
     } catch { setMessage("Não foi possível ativar os avisos neste navegador."); }

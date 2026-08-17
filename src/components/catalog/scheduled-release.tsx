@@ -4,13 +4,16 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ResponsiveImage } from "@/components/ui/responsive-image";
-import { IconArrowRight, IconBell, IconCalendar } from "@/components/ui/icons";
+import { IconArrowRight, IconBell, IconCalendar, IconCheck } from "@/components/ui/icons";
+import { enableChapterReminderAction } from "@/features/push/actions";
+import { browserPushSupported, currentBrowserPushActive, enableBrowserPush } from "@/features/push/client";
 import { APP_TIME_ZONE, chapterLabel } from "@/lib/utils";
 
 type ReleaseKind = "series-premiere" | "chapter-release";
 
 type Release = {
   id: number;
+  seriesId: number;
   number: number;
   title: string;
   publishAt: string;
@@ -25,6 +28,8 @@ type ScheduledReleaseProps = {
   kind: ReleaseKind;
   initialNow: string;
   signedIn: boolean;
+  pushConfigured: boolean;
+  initialFollowing: boolean;
 };
 
 const dateParts = new Intl.DateTimeFormat("en-CA", {
@@ -89,11 +94,16 @@ function calendarParts(timestamp: number) {
   };
 }
 
-export function ScheduledRelease({ release, upcoming, kind, initialNow, signedIn }: ScheduledReleaseProps) {
+export function ScheduledRelease({ release, upcoming, kind, initialNow, signedIn, pushConfigured, initialFollowing }: ScheduledReleaseProps) {
   const router = useRouter();
   const target = new Date(release.publishAt).getTime();
   const refreshTarget = Math.min(target, ...upcoming.map((item) => new Date(item.publishAt).getTime()));
   const [now, setNow] = useState(() => new Date(initialNow).getTime());
+  const [following, setFollowing] = useState(initialFollowing);
+  const [pushAvailable, setPushAvailable] = useState(false);
+  const [devicePushActive, setDevicePushActive] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [reminderMessage, setReminderMessage] = useState("");
 
   useEffect(() => {
     const remaining = refreshTarget - Date.now();
@@ -105,13 +115,59 @@ export function ScheduledRelease({ release, upcoming, kind, initialNow, signedIn
     return () => window.clearTimeout(timer);
   }, [now, refreshTarget, router]);
 
+  useEffect(() => {
+    const available = pushConfigured && browserPushSupported();
+    setPushAvailable(available);
+    if (!available) return;
+    currentBrowserPushActive().then(setDevicePushActive).catch(() => setDevicePushActive(false));
+  }, [pushConfigured]);
+
+  async function activateReminder() {
+    if (!signedIn) {
+      router.push(`/entrar?next=${encodeURIComponent("/#agenda-da-estante")}`);
+      return;
+    }
+
+    setActivating(true);
+    setReminderMessage("");
+    try {
+      const pushPromise = pushAvailable
+        ? enableBrowserPush()
+        : Promise.resolve({ ok: false as const, error: "Avisos do navegador indisponíveis." });
+      const [reminderResult, pushResult] = await Promise.all([
+        enableChapterReminderAction(release.seriesId),
+        pushPromise,
+      ]);
+
+      if (!reminderResult.ok) {
+        setReminderMessage(reminderResult.error);
+        return;
+      }
+
+      setFollowing(true);
+      if (pushResult.ok) {
+        setDevicePushActive(true);
+        setReminderMessage("Obra acompanhada. Avisaremos neste aparelho quando o capítulo sair.");
+      } else {
+        setReminderMessage("Obra acompanhada. O aviso aparecerá dentro do site.");
+      }
+      router.refresh();
+    } catch {
+      setReminderMessage("Não foi possível ativar os avisos agora. Tente novamente.");
+    } finally {
+      setActivating(false);
+    }
+  }
+
   const exactDate = exactDateFormatter.format(new Date(release.publishAt));
-  const notificationsHref = signedIn ? "/perfil#avisos" : "/entrar?next=%2Fperfil%23avisos";
+  const deviceReminderActive = following && devicePushActive;
+  const siteReminderOnly = following && !pushAvailable;
 
   return (
-    <section className={`scheduled-release is-${kind}${upcoming.length ? " has-agenda" : ""}`} aria-labelledby="scheduled-release-title">
+    <section id="agenda-da-estante" className={`scheduled-release is-${kind}${upcoming.length ? " has-agenda" : ""}`} aria-labelledby="scheduled-release-title">
       <Link href={`/obra/${release.seriesSlug}`} className="scheduled-release-cover" aria-label={`Conhecer ${release.seriesTitle}`}>
         <ResponsiveImage src={release.image} alt={`Capa do ${chapterLabel(release.number)} de ${release.seriesTitle}`} sizes="(max-width: 640px) 6rem, 10rem" />
+        <span className="scheduled-cover-label">{kind === "series-premiere" ? "Estreia" : chapterLabel(release.number)}</span>
       </Link>
       <div className="scheduled-release-copy">
         <span className="scheduled-release-icon" aria-hidden="true"><IconCalendar size={18} /></span>
@@ -123,19 +179,23 @@ export function ScheduledRelease({ release, upcoming, kind, initialNow, signedIn
         )}</p>
         <div className="scheduled-release-time" aria-live="polite">
           <strong>{countdownLabel(target, now)}</strong>
-          <time dateTime={release.publishAt}>{exactDate}, no horário de Brasília</time>
+          <span><time dateTime={release.publishAt}>{exactDate}</time><small>Horário de Brasília · publicação automática</small></span>
         </div>
         <div className="scheduled-release-actions">
           <Link href={`/obra/${release.seriesSlug}`} className="btn">{kind === "series-premiere" ? "Conhecer a nova obra" : "Entrar no clima"} <IconArrowRight size={15} /></Link>
-          <Link href={notificationsHref} className="btn ghost"><IconBell size={15} /> Ativar avisos</Link>
+          <button type="button" className="btn ghost" onClick={activateReminder} disabled={activating || siteReminderOnly} aria-pressed={following}>
+            {following ? <IconCheck size={15} /> : <IconBell size={15} />}
+            {activating ? "Ativando…" : deviceReminderActive ? "Avisos ativos" : siteReminderOnly ? "Avisos no site ativos" : following ? "Ativar neste aparelho" : signedIn ? "Ativar avisos" : "Entrar para ativar"}
+          </button>
         </div>
+        {reminderMessage && <p className="scheduled-reminder-message" role="status">{reminderMessage}</p>}
       </div>
 
       {upcoming.length > 0 && (
         <aside className="scheduled-agenda" aria-labelledby="scheduled-agenda-title">
           <div className="scheduled-agenda-head">
             <h3 id="scheduled-agenda-title"><IconCalendar size={16} /> Agenda da estante</h3>
-            <span>{upcoming.length + 1} lançamentos marcados</span>
+            <span>Esta data + {upcoming.length} {upcoming.length === 1 ? "próxima" : "próximas"}</span>
           </div>
           <ol>
             {upcoming.slice(0, 4).map((item) => {
@@ -156,7 +216,7 @@ export function ScheduledRelease({ release, upcoming, kind, initialNow, signedIn
               );
             })}
           </ol>
-          <p>Novos agendamentos aparecem aqui automaticamente.</p>
+          <p>A agenda é atualizada automaticamente a cada novo agendamento.</p>
         </aside>
       )}
     </section>

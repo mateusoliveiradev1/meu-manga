@@ -13,6 +13,7 @@ import { getChaptersBySeries, getFavoritedSeriesIds, getLatestChapters, getSched
 import { chapterLabel, formatDate, formatNumber, initials } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+const PUSH_CONFIGURED = Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -111,9 +112,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <ScheduledRelease
           initialNow={renderedAt}
           signedIn={Boolean(user)}
+          pushConfigured={PUSH_CONFIGURED}
+          initialFollowing={Boolean(favoriteIds?.includes(mainSchedule.seriesId))}
           kind={scheduleKind(mainSchedule)}
           release={{
             id: mainSchedule.id,
+            seriesId: mainSchedule.seriesId,
             number: mainSchedule.number,
             title: mainSchedule.title,
             publishAt: mainSchedule.publishAt.toISOString(),
@@ -123,6 +127,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           }}
           upcoming={scheduledChapters.filter((chapter) => chapter.id !== mainSchedule.id && chapter.publishAt).map((chapter) => ({
             id: chapter.id,
+            seriesId: chapter.seriesId,
             number: chapter.number,
             title: chapter.title,
             publishAt: chapter.publishAt!.toISOString(),
